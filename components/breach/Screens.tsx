@@ -1,15 +1,6 @@
 'use client'
 
-import {
-  type GameState,
-  type NodeId,
-  NODE_IDS,
-  STAGES,
-  countBreached,
-  countDefended,
-  detectionCommentary,
-  getRank,
-} from '@/lib/game-data'
+import type { GameMode, GameResult } from '@/components/breach/MazeGame'
 
 // ============================================================
 // Shared footer
@@ -65,42 +56,6 @@ function SignatureFooter() {
 }
 
 // ============================================================
-// Mini status bar for recap screens
-// ============================================================
-
-function MiniStatusBar({ nodeStatus, mode }: { nodeStatus: GameState['nodeStatus']; mode: 'thief' | 'cop' }) {
-  return (
-    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-      {NODE_IDS.map((id) => {
-        const status = nodeStatus[id]
-        const stage = STAGES.find((s) => s.id === id)!
-        const color =
-          status === 'breached'
-            ? '#ff6b4a'
-            : status === 'defended'
-              ? '#00ffcc'
-              : 'rgba(255,255,255,0.2)'
-        return (
-          <div
-            key={id}
-            style={{
-              border: `1px solid ${color}`,
-              borderRadius: '2px',
-              padding: '4px 8px',
-              fontSize: '0.5rem',
-              letterSpacing: '0.06em',
-              color,
-            }}
-          >
-            {stage.label}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ============================================================
 // Welcome Screen
 // ============================================================
 
@@ -130,12 +85,10 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           width: '100%',
         }}
       >
-        {/* Header tag */}
         <div className="breach-label" style={{ marginBottom: '12px' }}>
-          SECURITY_SIMULATION_v2.4.1:
+          SECURITY_SIMULATION_v3.0.0:
         </div>
 
-        {/* Title */}
         <h1
           style={{
             fontSize: 'clamp(1.8rem, 6vw, 2.8rem)',
@@ -157,58 +110,21 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             marginBottom: '24px',
           }}
         >
-          — FOLLOW THE ATTACK
+          — THE CHASE IS REAL-TIME NOW
         </h2>
 
-        {/* Description card */}
-        <div
-          className="breach-card"
-          style={{ padding: '20px', marginBottom: '32px' }}
-        >
+        <div className="breach-card" style={{ padding: '20px', marginBottom: '32px' }}>
           <div className="breach-label" style={{ marginBottom: '10px' }}>
-            WHAT_YOU_WILL_LEARN:
+            HOW_TO_PLAY:
           </div>
           <p style={{ fontSize: '0.78rem', color: '#e2e8f0', lineHeight: 1.65 }}>
-            A real API key was left in a public repo. Follow the attacker through
-            all 6 stages of the breach — then switch sides and try to stop it.
-            Every decision changes what gets logged, what gets caught, and what
-            gets away.
+            Run the breach yourself — grab coins through six real attack stages
+            while a cop hunts you down — or flip sides and play the cop chasing
+            an AI-controlled thief through the same maze. Grab the zero-day for
+            a brief edge.
           </p>
         </div>
 
-        {/* Stage path preview */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '32px' }}>
-          {STAGES.map((stage, i) => (
-            <div key={stage.id} style={{ display: 'flex', alignItems: 'center', flex: i < 5 ? 1 : 0 }}>
-              <div
-                style={{
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '2px',
-                  padding: '5px 6px 3px',
-                  fontSize: '0.45rem',
-                  letterSpacing: '0.05em',
-                  color: 'rgba(226,232,240,0.5)',
-                  textAlign: 'center',
-                  minWidth: '40px',
-                }}
-              >
-                {stage.label}
-              </div>
-              {i < 5 && (
-                <div
-                  style={{
-                    flex: 1,
-                    height: '1px',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    minWidth: '4px',
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* CTA */}
         <button
           onClick={onStart}
           style={{
@@ -225,12 +141,8 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             transition: 'background 0.15s',
             width: '100%',
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = 'rgba(0,255,204,0.08)')
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = 'transparent')
-          }
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,255,204,0.08)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           START SIMULATION →
         </button>
@@ -245,16 +157,11 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
 // ============================================================
 
 interface ModeChoiceScreenProps {
-  thiefCompleted: boolean
   onSelectThief: () => void
   onSelectCop: () => void
 }
 
-export function ModeChoiceScreen({
-  thiefCompleted: _thiefCompleted,
-  onSelectThief,
-  onSelectCop,
-}: ModeChoiceScreenProps) {
+export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScreenProps) {
   return (
     <div
       style={{
@@ -281,7 +188,6 @@ export function ModeChoiceScreen({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Thief card */}
           <button
             onClick={onSelectThief}
             className="breach-card"
@@ -304,34 +210,16 @@ export function ModeChoiceScreen({
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <div
-              style={{
-                fontSize: '0.65rem',
-                color: '#ff6b4a',
-                letterSpacing: '0.1em',
-                fontWeight: 700,
-                marginBottom: '8px',
-              }}
-            >
+            <div style={{ fontSize: '0.65rem', color: '#ff6b4a', letterSpacing: '0.1em', fontWeight: 700, marginBottom: '8px' }}>
               PLAY AS THE THIEF
             </div>
             <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              Follow the attack step by step. Choose how aggressive or quiet you
-              want to be. See exactly how the breach unfolds.
+              Collect every coin through all six breach stages while the cop
+              hunts you down with real pathfinding. Grab the zero-day for a
+              window to breathe.
             </p>
-            <div
-              style={{
-                marginTop: '12px',
-                fontSize: '0.55rem',
-                color: 'rgba(255,107,74,0.6)',
-                letterSpacing: '0.06em',
-              }}
-            >
-              STAGE_1_OF_2 · AVAILABLE
-            </div>
           </button>
 
-          {/* Cop card */}
           <button
             onClick={onSelectCop}
             className="breach-card"
@@ -340,10 +228,9 @@ export function ModeChoiceScreen({
               textAlign: 'left',
               cursor: 'pointer',
               background: 'transparent',
-              border: 'rgba(0,255,204,0.4) 1px solid',
+              border: '1px solid rgba(0,255,204,0.4)',
               borderRadius: '2px',
               fontFamily: 'inherit',
-              position: 'relative',
               transition: 'border-color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
@@ -355,31 +242,13 @@ export function ModeChoiceScreen({
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <div
-              style={{
-                fontSize: '0.65rem',
-                color: '#00ffcc',
-                letterSpacing: '0.1em',
-                fontWeight: 700,
-                marginBottom: '8px',
-              }}
-            >
+            <div style={{ fontSize: '0.65rem', color: '#00ffcc', letterSpacing: '0.1em', fontWeight: 700, marginBottom: '8px' }}>
               PLAY AS THE COP
             </div>
             <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              You know how the attack was pulled off. Now try to stop it. Allocate
-              a security budget across all 6 stages.
+              Hunt down an AI-controlled thief before it grabs every coin in
+              the maze. Watch out — if it finds the zero-day, you'll slow down.
             </p>
-            <div
-              style={{
-                marginTop: '12px',
-                fontSize: '0.55rem',
-                color: 'rgba(0,255,204,0.6)',
-                letterSpacing: '0.06em',
-              }}
-            >
-              STAGE_2_OF_2 · AVAILABLE
-            </div>
           </button>
         </div>
       </main>
@@ -388,44 +257,38 @@ export function ModeChoiceScreen({
 }
 
 // ============================================================
-// Round Complete Screen
+// Result Screen (win / lose)
 // ============================================================
 
-interface RoundCompleteScreenProps {
-  gameState: GameState
-  onGoToModeChoice: () => void
+interface ResultScreenProps {
+  mode: GameMode
+  result: GameResult
   onPlayAgain: () => void
+  onSwitchMode: () => void
+  onGoHome: () => void
 }
 
-export function RoundCompleteScreen({
-  gameState,
-  onGoToModeChoice,
-  onPlayAgain,
-}: RoundCompleteScreenProps) {
-  const {
-    mode,
-    nodeStatus,
-    detectionLevel,
-    securityBudget,
-    budgetSpent,
-    chosenEffectiveness,
-    score,
-    thiefCompleted,
-    copCompleted,
-  } = gameState
+export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome }: ResultScreenProps) {
+  const won = result.outcome === 'won'
+  const accent = won ? '#00ffcc' : '#ff6b4a'
 
-  const breachedCount = countBreached(nodeStatus)
-  const defendedCount = countDefended(nodeStatus)
-  const accentColor = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
-  const rank = getRank(mode, score)
-  const otherModeAvailable = mode === 'thief' ? !copCompleted : !thiefCompleted
+  const headline =
+    mode === 'thief'
+      ? won
+        ? 'BREACH COMPLETE'
+        : 'CAUGHT IN THE ACT'
+      : won
+        ? 'SUSPECT APPREHENDED'
+        : 'BREACH SUCCEEDED'
 
-  const avgEffectiveness =
-    chosenEffectiveness.length > 0
-      ? Math.round(
-          (chosenEffectiveness.reduce((a, b) => a + b, 0) / chosenEffectiveness.length) * 100
-        )
-      : 0
+  const subtext =
+    mode === 'thief'
+      ? won
+        ? 'You collected every coin and got out clean.'
+        : 'The cop caught up with you before the job was finished.'
+      : won
+        ? 'You caught the thief before all the data got out.'
+        : 'The thief collected every coin before you could catch it.'
 
   return (
     <div
@@ -441,232 +304,62 @@ export function RoundCompleteScreen({
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
+          justifyContent: 'center',
           padding: '40px 24px',
           maxWidth: '480px',
           margin: '0 auto',
           width: '100%',
         }}
       >
-        {/* Headline */}
         <div className="breach-label" style={{ marginBottom: '10px' }}>
-          {mode === 'thief' ? 'ROUND_COMPLETE:' : 'MISSION_COMPLETE:'}
+          ROUND_COMPLETE:
         </div>
         <h2
           style={{
             fontSize: 'clamp(1.2rem, 5vw, 1.8rem)',
             fontWeight: 700,
-            color: accentColor,
+            color: accent,
             lineHeight: 1.2,
-            letterSpacing: '-0.01em',
-            marginBottom: '24px',
+            marginBottom: '14px',
           }}
         >
-          {mode === 'thief'
-            ? `6/6 SYSTEMS BREACHED`
-            : `6/6 ATTACKS STOPPED`}
+          {headline}
         </h2>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.6, marginBottom: '20px' }}>
+          {subtext}
+        </p>
 
-        {/* Mini status bar */}
-        <div className="breach-card" style={{ padding: '16px', marginBottom: '16px' }}>
-          <div className="breach-label" style={{ marginBottom: '10px' }}>
-            FINAL_STATUS:
+        <div className="breach-card" style={{ padding: '16px', marginBottom: '24px' }}>
+          <div className="breach-label" style={{ marginBottom: '6px' }}>
+            COINS_COLLECTED:
           </div>
-          <MiniStatusBar nodeStatus={nodeStatus} mode={mode as 'thief' | 'cop'} />
+          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: accent }}>
+            {result.coinsCollected}/{result.totalCoins}
+          </span>
         </div>
-
-        {/* Score + rank */}
-        <div
-          className="breach-card"
-          style={{
-            padding: '16px',
-            marginBottom: '16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div className="breach-label" style={{ marginBottom: '6px' }}>
-              FINAL_SCORE:
-            </div>
-            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: accentColor }}>
-              {Math.max(0, Math.round(score))}
-            </span>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="breach-label" style={{ marginBottom: '6px' }}>
-              RANK:
-            </div>
-            <span
-              style={{
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                color: accentColor,
-              }}
-            >
-              {rank}
-            </span>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="breach-card" style={{ padding: '16px', marginBottom: '20px' }}>
-          {mode === 'thief' && (
-            <>
-              <div className="breach-label" style={{ marginBottom: '8px' }}>
-                DETECTION_RISK_FINAL:
-              </div>
-              {/* Meter */}
-              <div style={{ marginBottom: '8px' }}>
-                <div
-                  style={{
-                    height: '4px',
-                    background: 'rgba(255,255,255,0.1)',
-                    borderRadius: '1px',
-                    overflow: 'hidden',
-                    marginBottom: '4px',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${Math.min(detectionLevel, 100)}%`,
-                      background:
-                        detectionLevel < 30
-                          ? '#00ffcc'
-                          : detectionLevel < 60
-                            ? '#f59e0b'
-                            : '#ff6b4a',
-                      transition: 'width 0.8s ease',
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.6rem',
-                  }}
-                >
-                  <span style={{ color: 'rgba(226,232,240,0.5)' }}>0%</span>
-                  <span
-                    style={{
-                      color:
-                        detectionLevel < 30
-                          ? '#00ffcc'
-                          : detectionLevel < 60
-                            ? '#f59e0b'
-                            : '#ff6b4a',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {Math.round(detectionLevel)}%
-                  </span>
-                  <span style={{ color: 'rgba(226,232,240,0.5)' }}>100%</span>
-                </div>
-              </div>
-              <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.55, fontStyle: 'italic' }}>
-                &ldquo;{detectionCommentary(detectionLevel)}&rdquo;
-              </p>
-            </>
-          )}
-
-          {mode === 'cop' && (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '12px',
-                }}
-              >
-                <span className="breach-label">BUDGET_SPENT:</span>
-                <span style={{ fontSize: '0.65rem', color: '#00ffcc', fontWeight: 700 }}>
-                  {budgetSpent}/{10}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="breach-label">AVERAGE_DEFENSE_STRENGTH:</span>
-                <span
-                  style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    color:
-                      avgEffectiveness >= 80
-                        ? '#00ffcc'
-                        : avgEffectiveness >= 60
-                          ? '#f59e0b'
-                          : '#ff6b4a',
-                  }}
-                >
-                  {avgEffectiveness}%
-                </span>
-              </div>
-              {avgEffectiveness < 70 && (
-                <p
-                  style={{
-                    marginTop: '10px',
-                    fontSize: '0.7rem',
-                    color: 'rgba(226,232,240,0.6)',
-                    lineHeight: 1.55,
-                  }}
-                >
-                  You stayed within budget — but some of those defenses won&apos;t
-                  hold for long. Stronger controls cost more for a reason.
-                </p>
-              )}
-              {avgEffectiveness >= 70 && (
-                <p
-                  style={{
-                    marginTop: '10px',
-                    fontSize: '0.7rem',
-                    color: 'rgba(226,232,240,0.6)',
-                    lineHeight: 1.55,
-                  }}
-                >
-                  Solid coverage across the board. Thoughtful allocation beats
-                  just throwing money at the loudest alarms.
-                </p>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* CTA */}
-        {otherModeAvailable && (
-          <button
-            onClick={onGoToModeChoice}
-            style={{
-              border: '1px solid #00ffcc',
-              borderRadius: '2px',
-              padding: '14px 24px',
-              background: 'transparent',
-              color: '#00ffcc',
-              fontSize: '0.65rem',
-              letterSpacing: '0.1em',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              width: '100%',
-              marginBottom: '12px',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = 'rgba(0,255,204,0.08)')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = 'transparent')
-            }
-          >
-            {mode === 'thief'
-              ? 'STOP THIS BREACH — PLAY AS THE COP →'
-              : 'SEE HOW THE ATTACK WORKS — PLAY AS THE THIEF →'}
-          </button>
-        )}
 
         <button
           onClick={onPlayAgain}
+          style={{
+            border: `1px solid ${accent}`,
+            borderRadius: '2px',
+            padding: '14px 24px',
+            background: 'transparent',
+            color: accent,
+            fontSize: '0.65rem',
+            letterSpacing: '0.1em',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            width: '100%',
+            marginBottom: '12px',
+          }}
+        >
+          TRY AGAIN ↺
+        </button>
+
+        <button
+          onClick={onSwitchMode}
           style={{
             border: '1px solid rgba(226,232,240,0.3)',
             borderRadius: '2px',
@@ -679,18 +372,28 @@ export function RoundCompleteScreen({
             cursor: 'pointer',
             fontFamily: 'inherit',
             width: '100%',
-            transition: 'background 0.15s, border-color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(226,232,240,0.05)'
-            e.currentTarget.style.borderColor = 'rgba(226,232,240,0.6)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.borderColor = 'rgba(226,232,240,0.3)'
+            marginBottom: '12px',
           }}
         >
-          PLAY AGAIN ↺
+          {mode === 'thief' ? 'SWITCH TO COP MODE →' : 'SWITCH TO THIEF MODE →'}
+        </button>
+
+        <button
+          onClick={onGoHome}
+          style={{
+            border: '1px solid rgba(226,232,240,0.15)',
+            borderRadius: '2px',
+            padding: '12px 24px',
+            background: 'transparent',
+            color: 'rgba(226,232,240,0.45)',
+            fontSize: '0.6rem',
+            letterSpacing: '0.1em',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            width: '100%',
+          }}
+        >
+          ← BACK TO MENU
         </button>
       </main>
       <SignatureFooter />
