@@ -8,6 +8,7 @@ import {
   countBreached,
   countDefended,
   detectionCommentary,
+  getRank,
 } from '@/lib/game-data'
 
 // ============================================================
@@ -392,13 +393,13 @@ export function ModeChoiceScreen({
 
 interface RoundCompleteScreenProps {
   gameState: GameState
-  onPlayAsCop: () => void
+  onGoToModeChoice: () => void
   onPlayAgain: () => void
 }
 
 export function RoundCompleteScreen({
   gameState,
-  onPlayAsCop,
+  onGoToModeChoice,
   onPlayAgain,
 }: RoundCompleteScreenProps) {
   const {
@@ -408,11 +409,16 @@ export function RoundCompleteScreen({
     securityBudget,
     budgetSpent,
     chosenEffectiveness,
+    score,
+    thiefCompleted,
+    copCompleted,
   } = gameState
 
   const breachedCount = countBreached(nodeStatus)
   const defendedCount = countDefended(nodeStatus)
   const accentColor = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
+  const rank = getRank(mode, score)
+  const otherModeAvailable = mode === 'thief' ? !copCompleted : !thiefCompleted
 
   const avgEffectiveness =
     chosenEffectiveness.length > 0
@@ -466,6 +472,42 @@ export function RoundCompleteScreen({
             FINAL_STATUS:
           </div>
           <MiniStatusBar nodeStatus={nodeStatus} mode={mode as 'thief' | 'cop'} />
+        </div>
+
+        {/* Score + rank */}
+        <div
+          className="breach-card"
+          style={{
+            padding: '16px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <div className="breach-label" style={{ marginBottom: '6px' }}>
+              FINAL_SCORE:
+            </div>
+            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: accentColor }}>
+              {Math.max(0, Math.round(score))}
+            </span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="breach-label" style={{ marginBottom: '6px' }}>
+              RANK:
+            </div>
+            <span
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                color: accentColor,
+              }}
+            >
+              {rank}
+            </span>
+          </div>
         </div>
 
         {/* Stats */}
@@ -592,9 +634,9 @@ export function RoundCompleteScreen({
         </div>
 
         {/* CTA */}
-        {mode === 'thief' && (
+        {otherModeAvailable && (
           <button
-            onClick={onPlayAsCop}
+            onClick={onGoToModeChoice}
             style={{
               border: '1px solid #00ffcc',
               borderRadius: '2px',
@@ -607,6 +649,7 @@ export function RoundCompleteScreen({
               cursor: 'pointer',
               fontFamily: 'inherit',
               width: '100%',
+              marginBottom: '12px',
               transition: 'background 0.15s',
             }}
             onMouseEnter={(e) =>
@@ -616,39 +659,39 @@ export function RoundCompleteScreen({
               (e.currentTarget.style.background = 'transparent')
             }
           >
-            STOP THIS BREACH — PLAY AS THE COP →
+            {mode === 'thief'
+              ? 'STOP THIS BREACH — PLAY AS THE COP →'
+              : 'SEE HOW THE ATTACK WORKS — PLAY AS THE THIEF →'}
           </button>
         )}
 
-        {mode === 'cop' && (
-          <button
-            onClick={onPlayAgain}
-            style={{
-              border: '1px solid rgba(226,232,240,0.3)',
-              borderRadius: '2px',
-              padding: '14px 24px',
-              background: 'transparent',
-              color: 'rgba(226,232,240,0.7)',
-              fontSize: '0.65rem',
-              letterSpacing: '0.1em',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              width: '100%',
-              transition: 'background 0.15s, border-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(226,232,240,0.05)'
-              e.currentTarget.style.borderColor = 'rgba(226,232,240,0.6)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(226,232,240,0.3)'
-            }}
-          >
-            PLAY AGAIN ↺
-          </button>
-        )}
+        <button
+          onClick={onPlayAgain}
+          style={{
+            border: '1px solid rgba(226,232,240,0.3)',
+            borderRadius: '2px',
+            padding: '14px 24px',
+            background: 'transparent',
+            color: 'rgba(226,232,240,0.7)',
+            fontSize: '0.65rem',
+            letterSpacing: '0.1em',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            width: '100%',
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(226,232,240,0.05)'
+            e.currentTarget.style.borderColor = 'rgba(226,232,240,0.6)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.borderColor = 'rgba(226,232,240,0.3)'
+          }}
+        >
+          PLAY AGAIN ↺
+        </button>
       </main>
       <SignatureFooter />
     </div>

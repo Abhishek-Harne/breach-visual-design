@@ -8,7 +8,9 @@ import {
   type ThiefOption,
   type CopOption,
   getStage,
+  getRiskyOptionId,
 } from '@/lib/game-data'
+import { OptionTimer } from './OptionTimer'
 
 interface StagePanelProps {
   activeNodeId: NodeId
@@ -18,8 +20,10 @@ interface StagePanelProps {
   resolvedNarrative: string | null
   resolvedDefenseLine: string | null
   resolvedWasCaught: boolean
+  resolvedTimedOut: boolean
   budgetRemaining: number
-  onSelectOption: (optionId: string) => void
+  panelNonce: number
+  onSelectOption: (optionId: string, timedOut?: boolean) => void
   onContinue: () => void
 }
 
@@ -71,7 +75,9 @@ export function StagePanel({
   resolvedNarrative,
   resolvedDefenseLine,
   resolvedWasCaught,
+  resolvedTimedOut,
   budgetRemaining,
+  panelNonce,
   onSelectOption,
   onContinue,
 }: StagePanelProps) {
@@ -88,6 +94,10 @@ export function StagePanel({
   const isRevealed = resultPhase === 'revealed'
 
   const accentColor = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
+
+  const handleTimeout = () => {
+    onSelectOption(getRiskyOptionId(mode, stage), true)
+  }
 
   return (
     <div
@@ -118,6 +128,12 @@ export function StagePanel({
               </>
             )}
           </p>
+
+          <OptionTimer
+            active={isChoosing}
+            resetKey={`${activeNodeId}-${panelNonce}`}
+            onExpire={handleTimeout}
+          />
 
           {/* Options */}
           <div
@@ -243,6 +259,23 @@ export function StagePanel({
           <div className="breach-label" style={{ marginBottom: '10px' }}>
             WHAT_JUST_HAPPENED:
           </div>
+
+          {resolvedTimedOut && (
+            <p
+              style={{
+                fontSize: '0.72rem',
+                color: '#ff6b4a',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                marginBottom: '10px',
+              }}
+            >
+              {mode === 'thief'
+                ? 'TOO SLOW — the cop is gaining on you.'
+                : 'TOO SLOW — the thief just slipped further away.'}
+            </p>
+          )}
+
           <p
             style={{
               fontSize: '0.8rem',
