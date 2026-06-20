@@ -13,6 +13,7 @@ import {
 } from '@/lib/game-data'
 import { StatusBar } from '@/components/breach/StatusBar'
 import { StagePanel } from '@/components/breach/StagePanel'
+import { ExitConfirm } from '@/components/breach/ExitConfirm'
 import {
   WelcomeScreen,
   ModeChoiceScreen,
@@ -22,6 +23,7 @@ import {
 export default function Page() {
   const [gs, setGs] = useState<GameState>(INITIAL_STATE)
   const [showCaughtAnimation, setShowCaughtAnimation] = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const caughtTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -54,7 +56,7 @@ export default function Page() {
   }, [])
 
   // ----------------------------------------------------------------
-  // START COP ROUND (nodeStatus stays as-is = all breached)
+  // START COP ROUND (all nodes start breached — cop defends each one)
   // ----------------------------------------------------------------
   const handleSelectCop = useCallback(() => {
     setGs((s) => ({
@@ -63,6 +65,14 @@ export default function Page() {
       mode: 'cop',
       securityBudget: 10,
       budgetSpent: 0,
+      nodeStatus: {
+        github: 'breached',
+        api: 'breached',
+        db: 'breached',
+        admin: 'breached',
+        exfil: 'breached',
+        world: 'breached',
+      },
       activeNodeId: null,
       selectedOptionId: null,
       resultPhase: 'idle',
@@ -181,6 +191,14 @@ export default function Page() {
   }, [])
 
   // ----------------------------------------------------------------
+  // EXIT TO WELCOME
+  // ----------------------------------------------------------------
+  const handleExitConfirmed = useCallback(() => {
+    setShowExitConfirm(false)
+    setGs({ ...INITIAL_STATE })
+  }, [])
+
+  // ----------------------------------------------------------------
   // PLAY AGAIN (full reset)
   // ----------------------------------------------------------------
   const handlePlayAgain = useCallback(() => {
@@ -243,8 +261,49 @@ export default function Page() {
         backgroundColor: '#0a0a0f',
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
       }}
     >
+      {/* Exit button — fixed bottom-left */}
+      <button
+        onClick={() => setShowExitConfirm(true)}
+        aria-label="Exit simulation"
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '16px',
+          zIndex: 40,
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderRadius: '2px',
+          padding: '6px 10px',
+          background: '#0f0f18',
+          color: 'rgba(226,232,240,0.45)',
+          fontSize: '0.55rem',
+          letterSpacing: '0.1em',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'
+          e.currentTarget.style.color = '#e2e8f0'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+          e.currentTarget.style.color = 'rgba(226,232,240,0.45)'
+        }}
+      >
+        ← HOME
+      </button>
+
+      {/* Exit confirmation overlay */}
+      {showExitConfirm && (
+        <ExitConfirm
+          onStay={() => setShowExitConfirm(false)}
+          onExit={handleExitConfirmed}
+        />
+      )}
+
       <StatusBar
         gameState={gs}
         onNodeClick={handleNodeClick}

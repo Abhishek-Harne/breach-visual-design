@@ -250,7 +250,7 @@ interface ModeChoiceScreenProps {
 }
 
 export function ModeChoiceScreen({
-  thiefCompleted,
+  thiefCompleted: _thiefCompleted,
   onSelectThief,
   onSelectCop,
 }: ModeChoiceScreenProps) {
@@ -332,72 +332,32 @@ export function ModeChoiceScreen({
 
           {/* Cop card */}
           <button
-            onClick={thiefCompleted ? onSelectCop : undefined}
-            disabled={!thiefCompleted}
+            onClick={onSelectCop}
             className="breach-card"
             style={{
               padding: '22px',
               textAlign: 'left',
-              cursor: thiefCompleted ? 'pointer' : 'not-allowed',
+              cursor: 'pointer',
               background: 'transparent',
-              border: `1px solid ${thiefCompleted ? 'rgba(0,255,204,0.4)' : 'rgba(255,255,255,0.12)'}`,
+              border: 'rgba(0,255,204,0.4) 1px solid',
               borderRadius: '2px',
-              opacity: thiefCompleted ? 1 : 0.4,
               fontFamily: 'inherit',
               position: 'relative',
               transition: 'border-color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
-              if (!thiefCompleted) return
               e.currentTarget.style.borderColor = '#00ffcc'
               e.currentTarget.style.background = 'rgba(0,255,204,0.05)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = thiefCompleted
-                ? 'rgba(0,255,204,0.4)'
-                : 'rgba(255,255,255,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(0,255,204,0.4)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            {/* Lock icon if locked */}
-            {!thiefCompleted && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  fontSize: '0.75rem',
-                  color: 'rgba(255,255,255,0.3)',
-                }}
-              >
-                ⊘
-              </span>
-            )}
-
-            {/* NEW badge if unlocked */}
-            {thiefCompleted && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  left: '12px',
-                  backgroundColor: '#00ffcc',
-                  color: '#0a0a0f',
-                  fontSize: '0.45rem',
-                  letterSpacing: '0.1em',
-                  fontWeight: 700,
-                  padding: '2px 6px',
-                  borderRadius: '1px',
-                }}
-              >
-                NEW
-              </span>
-            )}
-
             <div
               style={{
                 fontSize: '0.65rem',
-                color: thiefCompleted ? '#00ffcc' : 'rgba(226,232,240,0.4)',
+                color: '#00ffcc',
                 letterSpacing: '0.1em',
                 fontWeight: 700,
                 marginBottom: '8px',
@@ -406,18 +366,18 @@ export function ModeChoiceScreen({
               PLAY AS THE COP
             </div>
             <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              Now that you know exactly how the attack was pulled off, try to stop
-              it. Allocate a security budget across all 6 stages.
+              You know how the attack was pulled off. Now try to stop it. Allocate
+              a security budget across all 6 stages.
             </p>
             <div
               style={{
                 marginTop: '12px',
                 fontSize: '0.55rem',
-                color: thiefCompleted ? 'rgba(0,255,204,0.6)' : 'rgba(255,255,255,0.2)',
+                color: 'rgba(0,255,204,0.6)',
                 letterSpacing: '0.06em',
               }}
             >
-              {thiefCompleted ? 'STAGE_2_OF_2 · UNLOCKED' : 'STAGE_2_OF_2 · COMPLETE_THIEF_ROUND_FIRST'}
+              STAGE_2_OF_2 · AVAILABLE
             </div>
           </button>
         </div>
