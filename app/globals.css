@@ -62,6 +62,34 @@
   from { width: 0%; }
 }
 
+@keyframes bob-idle {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-3px); }
+}
+
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes score-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes caught-burst {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-4px); }
+  75%       { transform: translateX(4px); }
+}
+
 /* ============================================================
    GLOBAL BASE
    ============================================================ */
@@ -150,4 +178,24 @@
 
 .detection-meter-fill {
   animation: meter-fill 0.6s ease-out forwards;
+}
+
+.chase-bob {
+  animation: bob-idle 1.5s ease-in-out infinite;
+}
+
+.timer-pulse {
+  animation: timer-pulse 0.5s ease-in-out infinite;
+}
+
+.score-pulse {
+  animation: score-pulse 0.2s ease-in-out;
+}
+
+.caught-burst {
+  animation: caught-burst 0.3s ease-out forwards;
+}
+
+.screen-shake {
+  animation: screen-shake 0.2s ease-in-out;
 }

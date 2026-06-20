@@ -6,14 +6,19 @@ import {
   type NodeId,
   INITIAL_STATE,
   INITIAL_NODE_STATUS,
+  INITIAL_NODE_CATCH_COUNTS,
   getStage,
   NODE_IDS,
   countBreached,
   countDefended,
+  isCarefulOption,
+  getCatchRetryPenalty,
 } from '@/lib/game-data'
 import { StatusBar } from '@/components/breach/StatusBar'
 import { StagePanel } from '@/components/breach/StagePanel'
 import { ExitConfirm } from '@/components/breach/ExitConfirm'
+import { ChaseTrack } from '@/components/breach/ChaseTrack'
+import { CatchOverlay } from '@/components/breach/CatchOverlay'
 import {
   WelcomeScreen,
   ModeChoiceScreen,
@@ -24,8 +29,10 @@ export default function Page() {
   const [gs, setGs] = useState<GameState>(INITIAL_STATE)
   const [showCaughtAnimation, setShowCaughtAnimation] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [shaking, setShaking] = useState(false)
   const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const caughtTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ----------------------------------------------------------------
   // WELCOME → MODE CHOICE
@@ -52,6 +59,12 @@ export default function Page() {
       resolvedDefenseLine: null,
       resolvedWasCaught: false,
       chosenEffectiveness: [],
+      chaseGap: 100,
+      score: 0,
+      nodeCatchCounts: { ...INITIAL_NODE_CATCH_COUNTS },
+      timedOut: false,
+      caughtNodeId: null,
+      panelNonce: 0,
     }))
   }, [])
 
@@ -81,6 +94,12 @@ export default function Page() {
       resolvedDefenseLine: null,
       resolvedWasCaught: false,
       chosenEffectiveness: [],
+      chaseGap: 100,
+      score: 0,
+      nodeCatchCounts: { ...INITIAL_NODE_CATCH_COUNTS },
+      timedOut: false,
+      caughtNodeId: null,
+      panelNonce: 0,
     }))
   }, [])
 
@@ -99,8 +118,10 @@ export default function Page() {
         resolvedNarrative: null,
         resolvedDefenseLine: null,
         resolvedWasCaught: false,
+        timedOut: false,
         nodeStatus: { ...s.nodeStatus, [nodeId]: 'active' },
         spritePosition: stage.order,
+        panelNonce: s.panelNonce + 1,
       }
     })
   }, [])
@@ -108,11 +129,12 @@ export default function Page() {
   // ----------------------------------------------------------------
   // OPTION SELECT + RESOLUTION
   // ----------------------------------------------------------------
-  const handleSelectOption = useCallback((optionId: string) => {
+  const handleSelectOption = useCallback((optionId: string, timedOut = false) => {
     setGs((s) => ({
       ...s,
       selectedOptionId: optionId,
       resultPhase: 'resolving',
+      timedOut,
     }))
 
     // 700ms delay then reveal
@@ -121,6 +143,14 @@ export default function Page() {
         if (!s.activeNodeId) return s
         const nodeId = s.activeNodeId
         const stage = getStage(nodeId)
+        const careful = isCarefulOption(s.mode, stage, optionId)
+
+        let chaseDelta = careful ? -5 : -20
+        if (timedOut) chaseDelta -= 10
+        const newChaseGap = Math.max(0, s.chaseGap + chaseDelta)
+
+        let scoreDelta = 0
+        let resultBase: Partial<GameState> = {}
 
         if (s.mode === 'thief') {
           const opt = stage.thief.options.find((o) => o.id === optionId)!
@@ -128,10 +158,9 @@ export default function Page() {
           const caught = roll > opt.successChance
           const narrative = caught ? opt.outcomeIfCaught : opt.narrative
           const newDetection = Math.min(100, s.detectionLevel + opt.detectionDelta)
+          if (!caught) scoreDelta = careful ? 40 : 15
 
-          return {
-            ...s,
-            resultPhase: 'revealed',
+          resultBase = {
             nodeStatus: { ...s.nodeStatus, [nodeId]: 'breached' },
             detectionLevel: newDetection,
             resolvedNarrative: narrative,
@@ -142,14 +171,13 @@ export default function Page() {
           // cop mode
           const opt = stage.cop.options.find((o) => o.id === optionId)!
           const newBudgetSpent = s.budgetSpent + opt.cost
+          scoreDelta = careful ? 40 : 15
 
           // trigger caught animation
           setShowCaughtAnimation(true)
           caughtTimer.current = setTimeout(() => setShowCaughtAnimation(false), 850)
 
-          return {
-            ...s,
-            resultPhase: 'revealed',
+          resultBase = {
             nodeStatus: { ...s.nodeStatus, [nodeId]: 'defended' },
             budgetSpent: newBudgetSpent,
             resolvedNarrative: opt.narrative,
@@ -158,8 +186,63 @@ export default function Page() {
             chosenEffectiveness: [...s.chosenEffectiveness, opt.effectiveness],
           }
         }
+
+        const newScore = Math.max(0, s.score + scoreDelta)
+
+        if (newChaseGap <= 0) {
+          setShaking(true)
+          if (shakeTimer.current) clearTimeout(shakeTimer.current)
+          shakeTimer.current = setTimeout(() => setShaking(false), 200)
+
+          return {
+            ...s,
+            ...resultBase,
+            chaseGap: 0,
+            score: newScore,
+            resultPhase: 'caught',
+            caughtNodeId: nodeId,
+          }
+        }
+
+        return {
+          ...s,
+          ...resultBase,
+          chaseGap: newChaseGap,
+          score: newScore,
+          resultPhase: 'revealed',
+        }
       })
     }, 700)
+  }, [])
+
+  // ----------------------------------------------------------------
+  // RETRY STAGE (after being caught — chaseGap resets to 35, score penalty)
+  // ----------------------------------------------------------------
+  const handleRetryStage = useCallback(() => {
+    setGs((s) => {
+      if (!s.caughtNodeId) return s
+      const nodeId = s.caughtNodeId
+      const catchCount = s.nodeCatchCounts[nodeId] ?? 0
+      const penalty = getCatchRetryPenalty(catchCount)
+      const newScore = Math.max(0, s.score - penalty)
+
+      return {
+        ...s,
+        chaseGap: 35,
+        score: newScore,
+        nodeCatchCounts: { ...s.nodeCatchCounts, [nodeId]: catchCount + 1 },
+        nodeStatus: { ...s.nodeStatus, [nodeId]: 'active' },
+        activeNodeId: nodeId,
+        resultPhase: 'choosing',
+        selectedOptionId: null,
+        resolvedNarrative: null,
+        resolvedDefenseLine: null,
+        resolvedWasCaught: false,
+        timedOut: false,
+        caughtNodeId: null,
+        panelNonce: s.panelNonce + 1,
+      }
+    })
   }, [])
 
   // ----------------------------------------------------------------
@@ -206,9 +289,9 @@ export default function Page() {
   }, [])
 
   // ----------------------------------------------------------------
-  // COP: from round-complete go to mode choice (cop card now unlocked)
+  // From round-complete, go back to mode choice to try the other side
   // ----------------------------------------------------------------
-  const handleGoToCopMode = useCallback(() => {
+  const handleGoToModeChoice = useCallback(() => {
     setGs((s) => ({ ...s, screen: 'modeChoice' }))
   }, [])
 
@@ -217,6 +300,7 @@ export default function Page() {
     return () => {
       if (resolveTimer.current) clearTimeout(resolveTimer.current)
       if (caughtTimer.current) clearTimeout(caughtTimer.current)
+      if (shakeTimer.current) clearTimeout(shakeTimer.current)
     }
   }, [])
 
@@ -242,7 +326,7 @@ export default function Page() {
     return (
       <RoundCompleteScreen
         gameState={gs}
-        onPlayAsCop={handleGoToCopMode}
+        onGoToModeChoice={handleGoToModeChoice}
         onPlayAgain={handlePlayAgain}
       />
     )
@@ -256,6 +340,7 @@ export default function Page() {
 
   return (
     <div
+      className={shaking ? 'screen-shake' : ''}
       style={{
         minHeight: '100vh',
         backgroundColor: '#0a0a0f',
@@ -376,8 +461,16 @@ export default function Page() {
           </div>
         )}
 
+        {/* Caught — retry beat */}
+        {gs.resultPhase === 'caught' && gs.caughtNodeId && (
+          <CatchOverlay
+            nodeLabel={getStage(gs.caughtNodeId).label}
+            onRetry={handleRetryStage}
+          />
+        )}
+
         {/* Active node panel */}
-        {gs.activeNodeId && gs.resultPhase !== 'idle' && (
+        {gs.activeNodeId && gs.resultPhase !== 'idle' && gs.resultPhase !== 'caught' && (
           <StagePanel
             activeNodeId={gs.activeNodeId}
             mode={gs.mode}
@@ -386,12 +479,20 @@ export default function Page() {
             resolvedNarrative={gs.resolvedNarrative}
             resolvedDefenseLine={gs.resolvedDefenseLine}
             resolvedWasCaught={gs.resolvedWasCaught}
+            resolvedTimedOut={gs.timedOut}
             budgetRemaining={budgetRemaining}
+            panelNonce={gs.panelNonce}
             onSelectOption={handleSelectOption}
             onContinue={handleContinue}
           />
         )}
       </div>
+
+      <ChaseTrack
+        mode={gs.mode}
+        chaseGap={gs.chaseGap}
+        caught={gs.resultPhase === 'caught'}
+      />
     </div>
   )
 }

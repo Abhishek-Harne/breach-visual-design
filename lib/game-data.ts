@@ -6,7 +6,7 @@ export type NodeId = 'github' | 'api' | 'db' | 'admin' | 'exfil' | 'world'
 export type NodeStatus = 'neutral' | 'active' | 'breached' | 'defended'
 export type GameScreen = 'welcome' | 'modeChoice' | 'game' | 'roundComplete'
 export type GameMode = 'thief' | 'cop' | null
-export type ResultPhase = 'idle' | 'choosing' | 'resolving' | 'revealed'
+export type ResultPhase = 'idle' | 'choosing' | 'resolving' | 'revealed' | 'caught'
 
 export interface ThiefOption {
   id: string
@@ -70,6 +70,13 @@ export interface GameState {
   resolvedWasCaught: boolean
   // cop mode: track effectiveness of chosen options
   chosenEffectiveness: number[]
+  // chase mechanic (Phase 2)
+  chaseGap: number
+  score: number
+  nodeCatchCounts: Record<NodeId, number>
+  timedOut: boolean
+  caughtNodeId: NodeId | null
+  panelNonce: number
 }
 
 // ============================================================
@@ -83,6 +90,15 @@ export const INITIAL_NODE_STATUS: NodeStatusMap = {
   admin: 'neutral',
   exfil: 'neutral',
   world: 'neutral',
+}
+
+export const INITIAL_NODE_CATCH_COUNTS: Record<NodeId, number> = {
+  github: 0,
+  api: 0,
+  db: 0,
+  admin: 0,
+  exfil: 0,
+  world: 0,
 }
 
 export const INITIAL_STATE: GameState = {
@@ -102,6 +118,12 @@ export const INITIAL_STATE: GameState = {
   resolvedDefenseLine: null,
   resolvedWasCaught: false,
   chosenEffectiveness: [],
+  chaseGap: 100,
+  score: 0,
+  nodeCatchCounts: { ...INITIAL_NODE_CATCH_COUNTS },
+  timedOut: false,
+  caughtNodeId: null,
+  panelNonce: 0,
 }
 
 // ============================================================
@@ -453,6 +475,41 @@ export function countBreached(nodeStatus: NodeStatusMap): number {
 
 export function countDefended(nodeStatus: NodeStatusMap): number {
   return NODE_IDS.filter((id) => nodeStatus[id] === 'defended').length
+}
+
+// ============================================================
+// CHASE MECHANIC HELPERS (Phase 2)
+// ============================================================
+
+export function isCarefulOption(mode: GameMode, stage: Stage, optionId: string): boolean {
+  if (mode === 'thief') return optionId === 'careful'
+  const opts = stage.cop.options
+  const opt = opts.find((o) => o.id === optionId)
+  const other = opts.find((o) => o.id !== optionId)
+  if (!opt || !other) return true
+  return opt.effectiveness >= other.effectiveness
+}
+
+export function getRiskyOptionId(mode: GameMode, stage: Stage): string {
+  if (mode === 'thief') return 'quick'
+  const opts = stage.cop.options
+  return opts.reduce((a, b) => (a.effectiveness <= b.effectiveness ? a : b)).id
+}
+
+export function getCatchRetryPenalty(catchCountForNode: number): number {
+  // 1st catch on a node: -15, 2nd: -20, 3rd: -25, ...
+  return 15 + catchCountForNode * 5
+}
+
+export function getRank(mode: GameMode, score: number): string {
+  if (mode === 'cop') {
+    if (score > 220) return 'SECURITY CHIEF'
+    if (score >= 150) return 'SENIOR ANALYST'
+    return 'JUNIOR ANALYST'
+  }
+  if (score > 220) return 'GHOST'
+  if (score >= 150) return 'OPERATOR'
+  return 'ROOKIE'
 }
 
 export function detectionCommentary(level: number): string {

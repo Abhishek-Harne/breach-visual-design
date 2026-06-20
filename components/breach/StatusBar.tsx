@@ -12,6 +12,7 @@ import {
   countDefended,
 } from '@/lib/game-data'
 import { Sprite } from './Sprite'
+import { ScoreDisplay } from './ScoreDisplay'
 
 interface StatusBarProps {
   gameState: GameState
@@ -202,7 +203,7 @@ export function StatusBar({
     return () => ro.disconnect()
   }, [measurePositions])
 
-  const { mode, nodeStatus, resultPhase, spritePosition, detectionLevel, securityBudget, budgetSpent } =
+  const { mode, nodeStatus, resultPhase, spritePosition, detectionLevel, securityBudget, budgetSpent, score } =
     gameState
 
   const breachedCount = countBreached(nodeStatus)
@@ -333,6 +334,7 @@ export function StatusBar({
               ? `${defendedCount}/6 DEFENDED`
               : `${breachedCount}/6 BREACHED`}
           </span>
+          <ScoreDisplay score={score} />
         </div>
       </div>
 
