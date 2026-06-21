@@ -45,6 +45,8 @@ export function bfsNextStep(start: Cell, target: Cell): Cell | null {
 // THIEF AI — heuristic move toward nearest coin, away from cop
 // ============================================================
 
+const HESITATION_CHANCE = 1 / 7
+
 export function thiefAiNextStep(
   thiefPos: Cell,
   copPos: Cell,
@@ -53,6 +55,12 @@ export function thiefAiNextStep(
 ): Cell {
   const options = neighbors(thiefPos)
   if (options.length === 0) return thiefPos
+
+  // Hesitation: occasionally freeze for a tick or wander instead of the optimal move.
+  if (Math.random() < HESITATION_CHANCE) {
+    if (Math.random() < 0.5) return thiefPos
+    return options[Math.floor(Math.random() * options.length)]
+  }
 
   const distToCop = manhattan(thiefPos, copPos)
 

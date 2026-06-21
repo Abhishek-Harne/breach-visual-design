@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   COIN_DEFS,
+  COLS,
   COP_SPAWN,
   THIEF_SPAWN,
+  ZONES,
   sameCell,
   zoneForCol,
   type Cell,
   type Direction,
+  type ZoneId,
 } from '@/lib/maze-data'
 import { bfsNextStep, thiefAiNextStep, tryMove } from '@/lib/maze-engine'
 import { MazeBoard, type RenderCoin } from '@/components/breach/MazeBoard'
@@ -24,6 +27,9 @@ interface MazeGameProps {
 
 const PLAYER_TICK_MS = 170
 const COP_BFS_TICK_MS = 500
+// AI thief moves slightly slower than the player-controlled cop — it skips
+// every 4th tick, giving the player a small, earnable speed edge.
+const AI_THIEF_SKIP_EVERY = 4
 const POWER_FREEZE_MS = 1500
 const POWER_TOTAL_MS = 9000
 const TOAST_TTL_MS = 1400
@@ -51,6 +57,7 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   const powerHalfUntilRef = useRef(0)
   const halfToggleRef = useRef(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const aiThiefTickCountRef = useRef(0)
 
   thiefPosRef.current = thiefPos
   copPosRef.current = copPos
@@ -63,7 +70,7 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   useEffect(() => {
     function resize() {
       const w = containerRef.current?.offsetWidth ?? 360
-      const size = Math.max(16, Math.min(30, Math.floor(w / 19)))
+      const size = Math.max(10, Math.min(30, Math.floor(w / COLS)))
       setCellSize(size)
     }
     resize()
@@ -212,12 +219,16 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
         }
 
         if (phaseRef.current === 'playing') {
-          const remainingCoins = COIN_DEFS.filter((c) => !collectedRef.current.has(c.id))
-          const aiNext = thiefAiNextStep(thiefPosRef.current, copPosRef.current, remainingCoins)
-          if (!sameCell(aiNext, thiefPosRef.current)) {
-            thiefPosRef.current = aiNext
-            setThiefPos(aiNext)
-            handleThiefArrive(aiNext)
+          aiThiefTickCountRef.current += 1
+          const skipThisTick = aiThiefTickCountRef.current % AI_THIEF_SKIP_EVERY === 0
+          if (!skipThisTick) {
+            const remainingCoins = COIN_DEFS.filter((c) => !collectedRef.current.has(c.id))
+            const aiNext = thiefAiNextStep(thiefPosRef.current, copPosRef.current, remainingCoins)
+            if (!sameCell(aiNext, thiefPosRef.current)) {
+              thiefPosRef.current = aiNext
+              setThiefPos(aiNext)
+              handleThiefArrive(aiNext)
+            }
           }
         }
       }
@@ -284,6 +295,10 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   }))
 
   const accent = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
+
+  const zonesCompleted = new Set<ZoneId>(
+    COIN_DEFS.filter((c) => !c.power && collected.has(c.id)).map((c) => c.zone)
+  )
 
   return (
     <div
@@ -400,6 +415,40 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
         <div />
         <DpadButton label="▼" onPress={() => setDpadDir('down')} />
         <div />
+      </div>
+
+      {/* Hack progress bar */}
+      <div style={{ width: '100%', maxWidth: '560px', marginTop: '18px' }}>
+        <div className="breach-label" style={{ marginBottom: '6px' }}>
+          HACK_PROGRESS: <span style={{ color: '#00ffcc' }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
+        </div>
+        <div style={{ display: 'flex', gap: '3px' }}>
+          {ZONES.map((z) => {
+            const done = zonesCompleted.has(z.id)
+            return (
+              <div
+                key={z.id}
+                style={{
+                  flex: 1,
+                  height: '8px',
+                  border: '1px solid rgba(0,255,204,0.3)',
+                  borderRadius: '1px',
+                  overflow: 'hidden',
+                  background: 'rgba(15,15,24,0.8)',
+                }}
+              >
+                <div
+                  style={{
+                    width: done ? '100%' : '0%',
+                    height: '100%',
+                    background: '#00ffcc',
+                    transition: 'width 300ms ease-out',
+                  }}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Caught / win overlay */}

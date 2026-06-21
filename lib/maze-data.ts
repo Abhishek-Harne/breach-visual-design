@@ -1,22 +1,28 @@
 // ============================================================
 // MAZE GRID
 // ============================================================
-// '#' = wall, '.' = open path. 19 cols x 13 rows.
+// '#' = wall, '.' = open path. 32 cols x 19 rows.
 
 export const MAZE_ROWS: string[] = [
-  '###################',
-  '#........#........#',
-  '#.##.###.#.###.##.#',
-  '#.................#',
-  '#.##.#.#####.#.##.#',
-  '#....#...#...#....#',
-  '###.#.#.....#.#.###',
-  '#....#...#...#....#',
-  '#.##.#.#####.#.##.#',
-  '#.................#',
-  '#.##.###.#.###.##.#',
-  '#........#........#',
-  '###################',
+  '################################',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '###.##.##.##.##.##.##.##.##.##.#',
+  '#..............................#',
+  '################################',
 ]
 
 export const ROWS = MAZE_ROWS.length
@@ -63,12 +69,12 @@ export function neighbors(c: Cell): Cell[] {
 export type ZoneId = 'github' | 'api' | 'db' | 'admin' | 'exfil' | 'world'
 
 export const ZONES: { id: ZoneId; label: string; colStart: number; colEnd: number; toast: string }[] = [
-  { id: 'github', label: 'GITHUB', colStart: 0, colEnd: 3, toast: 'Leaked API key found' },
-  { id: 'api', label: 'INT_API', colStart: 3, colEnd: 6, toast: 'Logged in with stolen key' },
-  { id: 'db', label: 'CUST_DB', colStart: 6, colEnd: 9, toast: 'Reached the customer database' },
-  { id: 'admin', label: 'ADMIN', colStart: 9, colEnd: 12, toast: 'Escalated to admin access' },
-  { id: 'exfil', label: 'EXFIL', colStart: 12, colEnd: 15, toast: 'Data quietly exported' },
-  { id: 'world', label: 'WORLD', colStart: 15, colEnd: 19, toast: 'Breach goes undetected' },
+  { id: 'github', label: 'GITHUB', colStart: 0, colEnd: 5, toast: 'Leaked API key found' },
+  { id: 'api', label: 'INT_API', colStart: 5, colEnd: 10, toast: 'Logged in with stolen key' },
+  { id: 'db', label: 'CUST_DB', colStart: 10, colEnd: 15, toast: 'Reached the customer database' },
+  { id: 'admin', label: 'ADMIN', colStart: 15, colEnd: 20, toast: 'Escalated to admin access' },
+  { id: 'exfil', label: 'EXFIL', colStart: 20, colEnd: 25, toast: 'Data quietly exported' },
+  { id: 'world', label: 'WORLD', colStart: 25, colEnd: 32, toast: 'Breach goes undetected' },
 ]
 
 export function zoneForCol(col: number): typeof ZONES[number] {
@@ -88,20 +94,14 @@ export interface CoinDef {
 }
 
 export const COIN_DEFS: CoinDef[] = [
-  { id: 'c1', row: 1, col: 2, zone: 'github', power: false },
-  { id: 'c2', row: 3, col: 2, zone: 'github', power: false },
-  { id: 'c3', row: 1, col: 5, zone: 'api', power: false },
-  { id: 'c4', row: 5, col: 4, zone: 'api', power: false },
-  { id: 'c5', row: 3, col: 7, zone: 'db', power: false },
-  { id: 'c6', row: 7, col: 7, zone: 'db', power: false },
-  { id: 'c7', row: 3, col: 11, zone: 'admin', power: false },
-  { id: 'c8', row: 5, col: 11, zone: 'admin', power: false },
-  { id: 'c9', row: 3, col: 13, zone: 'exfil', power: false },
-  { id: 'c10', row: 7, col: 14, zone: 'exfil', power: false },
-  { id: 'c11', row: 1, col: 16, zone: 'world', power: false },
-  { id: 'c12', row: 11, col: 16, zone: 'world', power: false },
-  { id: 'power', row: 9, col: 9, zone: 'db', power: true },
+  { id: 'c1', row: 3, col: 2, zone: 'github', power: false },
+  { id: 'c2', row: 7, col: 7, zone: 'api', power: false },
+  { id: 'c3', row: 5, col: 12, zone: 'db', power: false },
+  { id: 'c4', row: 9, col: 17, zone: 'admin', power: false },
+  { id: 'c5', row: 13, col: 22, zone: 'exfil', power: false },
+  { id: 'c6', row: 15, col: 28, zone: 'world', power: false },
+  { id: 'power', row: 9, col: 9, zone: 'api', power: true },
 ]
 
-export const THIEF_SPAWN: Cell = { row: 6, col: 9 }
+export const THIEF_SPAWN: Cell = { row: 9, col: 16 }
 export const COP_SPAWN: Cell = { row: 1, col: 1 }
