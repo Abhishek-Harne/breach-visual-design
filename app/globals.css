@@ -90,6 +90,16 @@
   75%       { transform: translateX(4px); }
 }
 
+@keyframes node-icon-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@keyframes node-icon-pulse-subtle {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 0.75; }
+}
+
 /* ============================================================
    GLOBAL BASE
    ============================================================ */
@@ -198,4 +208,12 @@
 
 .screen-shake {
   animation: screen-shake 0.2s ease-in-out;
+}
+
+.node-icon-pulse {
+  animation: node-icon-pulse 2s ease-in-out infinite;
+}
+
+.node-icon-pulse-subtle {
+  animation: node-icon-pulse-subtle 2s ease-in-out infinite;
 }
