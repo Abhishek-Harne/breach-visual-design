@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ZONES, type ZoneId } from '@/lib/maze-data'
 import { NODE_CONTENT } from '@/lib/node-content'
+import { ZONE_ICONS } from '@/lib/zone-icons'
+import { useTheme, hexToRgba } from '@/components/breach/ThemeContext'
 
 interface NodeProgressBarProps {
   zonesCompleted: Set<ZoneId>
@@ -14,6 +16,7 @@ interface NodeProgressBarProps {
 // during active gameplay (MazeGame) and on the round-complete screen
 // (ResultScreen) so players can review what each stage meant either way.
 export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgressBarProps) {
+  const { palette: theme } = useTheme()
   const [openNodeId, setOpenNodeId] = useState<ZoneId | null>(null)
   const [hoveredNodeId, setHoveredNodeId] = useState<ZoneId | null>(null)
   const [hasOpenedNode, setHasOpenedNode] = useState(false)
@@ -39,14 +42,15 @@ export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgre
 
   return (
     <div style={{ width: '100%', maxWidth, marginTop: '18px', position: 'relative' }}>
-      <div className="breach-label" style={{ marginBottom: '6px' }}>
-        HACK_PROGRESS: <span style={{ color: '#00ffcc' }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
+      <div className="breach-label" style={{ marginBottom: '8px' }}>
+        HACK_PROGRESS: <span style={{ color: theme.teal }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
       </div>
       <div ref={nodeBarRef} style={{ display: 'flex', gap: '8px' }}>
         {ZONES.map((z) => {
           const done = zonesCompleted.has(z.id)
           const hovered = hoveredNodeId === z.id
           const isOpen = openNodeId === z.id
+          const Icon = ZONE_ICONS[z.id]
           return (
             <button
               key={z.id}
@@ -57,40 +61,47 @@ export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgre
               style={{
                 flex: 1,
                 position: 'relative',
-                height: '8px',
-                border: `1px solid ${isOpen ? '#00ffcc' : 'rgba(0,255,204,0.3)'}`,
-                borderRadius: '1px',
+                height: '40px',
+                minWidth: '40px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                border: `1px solid ${isOpen ? theme.teal : hexToRgba(theme.teal, 0.3)}`,
+                borderRadius: '3px',
                 overflow: 'visible',
-                background: 'rgba(15,15,24,0.8)',
-                padding: 0,
+                background: hexToRgba(theme.surface, 0.8),
+                padding: '4px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transform: hovered ? 'scale(1.045)' : 'scale(1)',
                 transition: 'transform 150ms ease-out, border-color 150ms ease-out',
               }}
             >
+              <Icon size={16} color={done ? theme.teal : theme.mutedFaint} strokeWidth={2} />
               <div
                 style={{
-                  width: done ? '100%' : '0%',
-                  height: '100%',
-                  background: '#00ffcc',
-                  transition: 'width 300ms ease-out',
-                  overflow: 'hidden',
+                  width: '70%',
+                  height: '3px',
+                  borderRadius: '2px',
+                  background: done ? theme.teal : hexToRgba(theme.teal, 0.15),
+                  transition: 'background 300ms ease-out',
                 }}
               />
               <span
                 className={hasOpenedNode ? 'node-icon-pulse-subtle' : 'node-icon-pulse'}
                 style={{
                   position: 'absolute',
-                  top: '-5px',
-                  right: '-5px',
-                  width: '10px',
-                  height: '10px',
+                  top: '-6px',
+                  right: '-6px',
+                  width: '14px',
+                  height: '14px',
                   borderRadius: '50%',
-                  border: '1px solid rgba(0,255,204,0.7)',
-                  background: '#0a0a0f',
-                  color: '#00ffcc',
-                  fontSize: '6px',
+                  border: `1px solid ${hexToRgba(theme.teal, 0.7)}`,
+                  background: theme.bg,
+                  color: theme.teal,
+                  fontSize: '8px',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -117,7 +128,7 @@ export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgre
             right: 0,
             padding: '14px 16px',
             zIndex: 50,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            boxShadow: `0 4px 20px ${theme.shadow}`,
           }}
         >
           <div
@@ -136,11 +147,11 @@ export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgre
               onClick={() => setOpenNodeId(null)}
               aria-label="Close"
               style={{
-                border: '1px solid rgba(255,255,255,0.18)',
+                border: `1px solid ${theme.borderMed}`,
                 borderRadius: '2px',
                 padding: '2px 6px',
-                background: '#0f0f18',
-                color: 'rgba(226,232,240,0.6)',
+                background: theme.surface,
+                color: theme.muted,
                 fontSize: '0.6rem',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -150,15 +161,15 @@ export function NodeProgressBar({ zonesCompleted, accent, maxWidth }: NodeProgre
               ✕
             </button>
           </div>
-          <p style={{ fontSize: '0.68rem', color: '#e2e8f0', lineHeight: 1.55, marginBottom: '6px' }}>
-            <span style={{ color: '#ff6b4a', fontWeight: 700 }}>EXPLOIT: </span>
+          <p style={{ fontSize: '0.68rem', color: theme.text, lineHeight: 1.55, marginBottom: '6px' }}>
+            <span style={{ color: theme.orange, fontWeight: 700 }}>EXPLOIT: </span>
             {NODE_CONTENT[openNodeId].exploit}
           </p>
-          <p style={{ fontSize: '0.68rem', color: '#e2e8f0', lineHeight: 1.55, marginBottom: '6px' }}>
-            <span style={{ color: '#00ffcc', fontWeight: 700 }}>DEFENSE: </span>
+          <p style={{ fontSize: '0.68rem', color: theme.text, lineHeight: 1.55, marginBottom: '6px' }}>
+            <span style={{ color: theme.teal, fontWeight: 700 }}>DEFENSE: </span>
             {NODE_CONTENT[openNodeId].defense}
           </p>
-          <p style={{ fontSize: '0.68rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.55 }}>
+          <p style={{ fontSize: '0.68rem', color: hexToRgba(theme.text, 0.85), lineHeight: 1.55 }}>
             <span style={{ fontWeight: 700 }}>DO / DON&apos;T: </span>
             {NODE_CONTENT[openNodeId].doDont}
           </p>

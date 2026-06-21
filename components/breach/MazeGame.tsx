@@ -17,6 +17,8 @@ import {
 import { bfsNextStep, thiefAiNextStep, tryMove } from '@/lib/maze-engine'
 import { MazeBoard, type RenderCoin } from '@/components/breach/MazeBoard'
 import { NodeProgressBar } from '@/components/breach/NodeProgressBar'
+import { HowToPlayContent } from '@/components/breach/HowToPlayContent'
+import { useTheme, hexToRgba } from '@/components/breach/ThemeContext'
 
 export type GameMode = 'thief' | 'cop'
 export type GameResult = {
@@ -51,6 +53,7 @@ let toastSeq = 0
 const MOBILE_BREAKPOINT = 600
 
 export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSeen }: MazeGameProps) {
+  const { palette: theme } = useTheme()
   const [layout] = useState(() =>
     pickLayout(typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT)
   )
@@ -336,7 +339,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
     power: c.power,
   }))
 
-  const accent = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
+  const accent = mode === 'thief' ? theme.orange : theme.teal
 
   const zonesCompleted = new Set<ZoneId>(
     coins.filter((c) => !c.power && collected.has(c.id)).map((c) => c.zone)
@@ -348,7 +351,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: theme.bg,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -377,11 +380,11 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             onClick={() => setHowToOpen(true)}
             aria-label="How to play"
             style={{
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: `1px solid ${theme.borderMed}`,
               borderRadius: '2px',
               padding: '5px 10px',
-              background: '#0f0f18',
-              color: 'rgba(226,232,240,0.45)',
+              background: theme.surface,
+              color: theme.muted,
               fontSize: '0.55rem',
               letterSpacing: '0.1em',
               cursor: 'pointer',
@@ -393,11 +396,11 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
           <button
             onClick={onExit}
             style={{
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: `1px solid ${theme.borderMed}`,
               borderRadius: '2px',
               padding: '5px 10px',
-              background: '#0f0f18',
-              color: 'rgba(226,232,240,0.45)',
+              background: theme.surface,
+              color: theme.muted,
               fontSize: '0.55rem',
               letterSpacing: '0.1em',
               cursor: 'pointer',
@@ -429,13 +432,13 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             key={t.id}
             className="panel-fade-in"
             style={{
-              background: 'rgba(15,15,24,0.92)',
-              border: '1px solid rgba(0,255,204,0.4)',
+              background: hexToRgba(theme.surface, 0.92),
+              border: `1px solid ${hexToRgba(theme.teal, 0.4)}`,
               borderRadius: '2px',
               padding: '6px 12px',
               fontSize: '0.62rem',
               letterSpacing: '0.05em',
-              color: '#00ffcc',
+              color: theme.teal,
               whiteSpace: 'nowrap',
             }}
           >
@@ -496,7 +499,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10,10,15,0.85)',
+            background: theme.overlay,
             padding: '16px',
           }}
         >
@@ -513,21 +516,9 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
               HOW TO PLAY
             </div>
 
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
-              Use arrow keys or WASD to move. On touch devices, swipe or use
-              the on-screen D-pad.
-            </p>
-
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
-              {mode === 'thief'
-                ? 'Each star is a real step in a data breach — collect them to complete the hack.'
-                : 'Each star the thief grabs is a step toward finishing the breach — stop them before they collect them all.'}
-            </p>
-
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '18px' }}>
-              The diamond is a zero-day exploit — grab it for a brief
-              advantage that slows down your opponent.
-            </p>
+            <div style={{ marginBottom: '8px' }}>
+              <HowToPlayContent mode={mode} />
+            </div>
 
             <button
               onClick={handleHowToDismiss}
@@ -562,7 +553,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10,10,15,0.85)',
+            background: theme.overlay,
           }}
         >
           <div className="breach-card" style={{ padding: '28px', maxWidth: '320px', textAlign: 'center' }}>
@@ -572,14 +563,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 marginBottom: '12px',
-                color: phase === 'won' ? '#00ffcc' : '#ff6b4a',
+                color: phase === 'won' ? theme.teal : theme.orange,
               }}
             >
               {phase === 'caught' && 'CAUGHT!'}
               {phase === 'won' && (mode === 'thief' ? 'BREACH COMPLETE' : 'SUSPECT CAUGHT')}
               {phase === 'lost' && 'BREACH SUCCEEDED'}
             </div>
-            <p style={{ fontSize: '0.7rem', color: 'rgba(226,232,240,0.6)' }}>
+            <p style={{ fontSize: '0.7rem', color: theme.muted }}>
               {collected.size}/{coins.length} coins collected
             </p>
           </div>
@@ -590,6 +581,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
 }
 
 function DpadButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { palette: theme } = useTheme()
   return (
     <button
       onMouseDown={onPress}
@@ -598,10 +590,10 @@ function DpadButton({ label, onPress }: { label: string; onPress: () => void }) 
         onPress()
       }}
       style={{
-        border: '1px solid rgba(255,255,255,0.18)',
+        border: `1px solid ${theme.borderMed}`,
         borderRadius: '2px',
-        background: '#0f0f18',
-        color: 'rgba(226,232,240,0.6)',
+        background: theme.surface,
+        color: theme.muted,
         fontSize: '0.9rem',
         cursor: 'pointer',
       }}

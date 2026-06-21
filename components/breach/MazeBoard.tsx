@@ -2,6 +2,7 @@
 
 import { gridDims, type Cell, type MazeGrid, type ZoneDef } from '@/lib/maze-data'
 import { ThiefSVG, CopSVG } from '@/components/breach/Sprite'
+import { useTheme, hexToRgba } from '@/components/breach/ThemeContext'
 
 export interface RenderCoin {
   id: string
@@ -31,6 +32,7 @@ export function MazeBoard({
   copDebuffed,
   shaking,
 }: MazeBoardProps) {
+  const { palette: theme } = useTheme()
   const { rows, cols } = gridDims(grid)
   const width = cols * cellSize
   const height = rows * cellSize
@@ -43,10 +45,11 @@ export function MazeBoard({
         width,
         height,
         margin: '0 auto',
-        background: '#0a0a0f',
+        background: theme.bg,
       }}
     >
-      {/* walls */}
+      {/* walls — brighter border + subtle outer glow so walls read
+          clearly distinct from open path cells at a glance */}
       {grid.map((rowStr, r) =>
         rowStr.split('').map((ch, c) =>
           ch === '#' ? (
@@ -58,8 +61,9 @@ export function MazeBoard({
                 left: c * cellSize,
                 width: cellSize,
                 height: cellSize,
-                background: '#0f0f18',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: theme.wallBg,
+                border: `1px solid ${theme.wallBorder}`,
+                boxShadow: `inset 0 0 0 1px ${hexToRgba(theme.text, 0.06)}`,
                 boxSizing: 'border-box',
               }}
             />
@@ -78,7 +82,7 @@ export function MazeBoard({
             transform: 'translateX(-50%)',
             fontSize: '0.45rem',
             letterSpacing: '0.05em',
-            color: 'rgba(226,232,240,0.3)',
+            color: hexToRgba(theme.text, 0.3),
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
           }}
@@ -108,7 +112,7 @@ export function MazeBoard({
               style={{
                 width: cellSize * 0.45,
                 height: cellSize * 0.45,
-                background: '#00ffcc',
+                background: theme.teal,
                 transform: 'rotate(45deg)',
                 animation: 'pulse-teal 0.7s ease-in-out infinite',
               }}
@@ -119,7 +123,7 @@ export function MazeBoard({
                 width: cellSize * 0.22,
                 height: cellSize * 0.22,
                 borderRadius: '50%',
-                background: '#00ffcc',
+                background: theme.teal,
                 opacity: 0.85,
               }}
             />
