@@ -107,17 +107,6 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         >
           BREACH
         </h1>
-        <h2
-          style={{
-            fontSize: 'clamp(0.75rem, 3vw, 1rem)',
-            fontWeight: 400,
-            color: theme.teal,
-            letterSpacing: '0.15em',
-            marginBottom: '24px',
-          }}
-        >
-          — ONE LEAKED KEY. SIX WAYS IT GOES WRONG.
-        </h2>
 
         <div className="breach-card" style={{ padding: '20px', marginBottom: '20px' }}>
           <div className="breach-label" style={{ marginBottom: '10px' }}>
