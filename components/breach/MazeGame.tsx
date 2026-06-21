@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  COIN_DEFS,
   COLS,
   COP_SPAWN,
+  ROWS,
   THIEF_SPAWN,
   ZONES,
+  generateCoins,
   sameCell,
   zoneForCol,
   type Cell,
+  type CoinDef,
   type Direction,
   type ZoneId,
 } from '@/lib/maze-data'
@@ -39,6 +41,7 @@ const TOAST_TTL_MS = 1400
 let toastSeq = 0
 
 export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSeen }: MazeGameProps) {
+  const [coins] = useState<CoinDef[]>(() => generateCoins())
   const [thiefPos, setThiefPos] = useState<Cell>(THIEF_SPAWN)
   const [copPos, setCopPos] = useState<Cell>(COP_SPAWN)
   const [collected, setCollected] = useState<Set<string>>(new Set())
@@ -75,12 +78,27 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
   }, [onHowToSeen])
 
   // ----------------------------------------------------------------
-  // Responsive cell size
+  // Responsive cell size — derived from the actual viewport so the
+  // board fills the available space instead of sitting in a fixed box.
   // ----------------------------------------------------------------
   useEffect(() => {
     function resize() {
-      const w = containerRef.current?.offsetWidth ?? 360
-      const size = Math.max(10, Math.min(30, Math.floor(w / COLS)))
+      const horizontalPadding = 32 // matches the outer container's padding
+      const reservedVertical = 300 // outer padding + HUD + dpad + progress bar + gaps, approx
+      const widthBudget = window.innerWidth - horizontalPadding
+      const heightBudget = window.innerHeight - reservedVertical
+      const widthBased = Math.floor(widthBudget / COLS)
+      const heightBased = Math.floor(heightBudget / ROWS)
+      // The maze is much wider (32 cols) than it is tall (19 rows). On
+      // portrait/narrow viewports, sizing purely by width leaves the board
+      // tiny with dead space above/below — so there we size by height
+      // instead and let the board scroll horizontally. On landscape/desktop
+      // viewports width is the more generous dimension, so the usual
+      // fit-both-dimensions sizing already fills the screen without
+      // overflowing vertically.
+      const isPortrait = window.innerHeight > window.innerWidth
+      const fit = isPortrait ? heightBased : Math.min(widthBased, heightBased)
+      const size = Math.max(8, Math.min(44, fit))
       setCellSize(size)
     }
     resize()
@@ -164,7 +182,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
   // ----------------------------------------------------------------
   const handleThiefArrive = useCallback(
     (pos: Cell) => {
-      const coin = COIN_DEFS.find((c) => sameCell(c, pos) && !collectedRef.current.has(c.id))
+      const coin = coins.find((c) => sameCell(c, pos) && !collectedRef.current.has(c.id))
       if (coin) {
         const nextCollected = new Set(collectedRef.current)
         nextCollected.add(coin.id)
@@ -184,7 +202,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
           setCopDebuffed(true)
         }
 
-        if (nextCollected.size === COIN_DEFS.length) {
+        if (nextCollected.size === coins.length) {
           phaseRef.current = mode === 'thief' ? 'won' : 'lost'
           setPhase(phaseRef.current)
         }
@@ -232,7 +250,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
           aiThiefTickCountRef.current += 1
           const skipThisTick = aiThiefTickCountRef.current % AI_THIEF_SKIP_EVERY === 0
           if (!skipThisTick) {
-            const remainingCoins = COIN_DEFS.filter((c) => !collectedRef.current.has(c.id))
+            const remainingCoins = coins.filter((c) => !collectedRef.current.has(c.id))
             const aiNext = thiefAiNextStep(thiefPosRef.current, copPosRef.current, remainingCoins)
             if (!sameCell(aiNext, thiefPosRef.current)) {
               thiefPosRef.current = aiNext
@@ -290,14 +308,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         onFinish({
           outcome,
           coinsCollected: collectedRef.current.size,
-          totalCoins: COIN_DEFS.length,
+          totalCoins: coins.length,
         })
       }, 900)
       return () => clearTimeout(t)
     }
   }, [phase, onFinish])
 
-  const renderCoins: RenderCoin[] = COIN_DEFS.filter((c) => !collected.has(c.id)).map((c) => ({
+  const renderCoins: RenderCoin[] = coins.filter((c) => !collected.has(c.id)).map((c) => ({
     id: c.id,
     row: c.row,
     col: c.col,
@@ -307,8 +325,10 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
   const accent = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
 
   const zonesCompleted = new Set<ZoneId>(
-    COIN_DEFS.filter((c) => !c.power && collected.has(c.id)).map((c) => c.zone)
+    coins.filter((c) => !c.power && collected.has(c.id)).map((c) => c.zone)
   )
+
+  const boardWidth = cellSize * COLS
 
   return (
     <div
@@ -318,6 +338,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         position: 'relative',
       }}
@@ -326,7 +347,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       <div
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: boardWidth,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -335,7 +356,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       >
         <div className="breach-label">
           {mode === 'thief' ? 'THIEF_MODE:' : 'COP_MODE:'}{' '}
-          <span style={{ color: accent }}>{collected.size}/{COIN_DEFS.length} COINS</span>
+          <span style={{ color: accent }}>{collected.size}/{coins.length} COINS</span>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           <button
@@ -413,7 +434,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         ref={containerRef}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        style={{ width: '100%', maxWidth: '560px', touchAction: 'none' }}
+        style={{ width: '100%', maxWidth: boardWidth, touchAction: 'none', overflowX: 'auto' }}
       >
         <MazeBoard
           cellSize={cellSize}
@@ -447,7 +468,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       </div>
 
       {/* Hack progress bar */}
-      <div style={{ width: '100%', maxWidth: '560px', marginTop: '18px' }}>
+      <div style={{ width: '100%', maxWidth: boardWidth, marginTop: '18px' }}>
         <div className="breach-label" style={{ marginBottom: '6px' }}>
           HACK_PROGRESS: <span style={{ color: '#00ffcc' }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
         </div>
@@ -574,7 +595,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
               {phase === 'lost' && 'BREACH SUCCEEDED'}
             </div>
             <p style={{ fontSize: '0.7rem', color: 'rgba(226,232,240,0.6)' }}>
-              {collected.size}/{COIN_DEFS.length} coins collected
+              {collected.size}/{coins.length} coins collected
             </p>
           </div>
         </div>
