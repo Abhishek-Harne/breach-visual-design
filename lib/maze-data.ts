@@ -129,21 +129,65 @@ export const COLS = MAZE_LAYOUTS[0][0].length
 export type Cell = { row: number; col: number }
 export type MazeGrid = string[]
 
+export function gridDims(grid: MazeGrid): { rows: number; cols: number } {
+  return { rows: grid.length, cols: grid[0].length }
+}
+
+// ============================================================
+// MOBILE LAYOUT — a separate, narrower-column maze used below the
+// mobile breakpoint so the board fits a narrow viewport without
+// horizontal clipping, instead of squeezing the desktop layout down.
+// Same generation/verification process as the desktop layouts: a
+// recursive-backtracker spanning tree, extra loop edges, then fully
+// debridged (zero graph-theoretic bridges) and confirmed 2-edge-connected
+// via max-flow across corner/edge sample points. 18 cols x 19 rows.
+// ============================================================
+
+export const MOBILE_LAYOUT: MazeGrid = [
+  '##################',
+  '#...............##',
+  '#.#.#.#.#.###.#.##',
+  '#...............##',
+  '#.#.#.#.###.#.#.##',
+  '#.....#.........##',
+  '#.#.#.#.#.#.#.#.##',
+  '#...#...........##',
+  '#.#.#.#.#.#.#.####',
+  '#.#.#.....#.#...##',
+  '#.#.#.#.#.#.#.#.##',
+  '#...........#...##',
+  '#.###.#.#.#.#.#.##',
+  '#.....#.........##',
+  '#.#.###.#.#.#.#.##',
+  '#.#.............##',
+  '#.#.#.#.#.#.#.#.##',
+  '#...............##',
+  '##################',
+]
+
+export const MOBILE_ROWS = MOBILE_LAYOUT.length
+export const MOBILE_COLS = MOBILE_LAYOUT[0].length
+
 // Tracks the most recently selected layout (module-level, persists across
 // component remounts within the same browser session) so consecutive
-// rounds avoid repeating the same layout back to back.
+// rounds avoid repeating the same layout back to back. Tracked separately
+// per breakpoint since desktop has 5 layouts and mobile currently has 1.
 let lastLayoutIndex: number | null = null
 
-export function pickLayout(): { grid: MazeGrid; index: number } {
+export function pickLayout(mobile = false): { grid: MazeGrid; index: number; zones: ZoneDef[]; thiefSpawn: Cell; copSpawn: Cell } {
+  if (mobile) {
+    return { grid: MOBILE_LAYOUT, index: 0, zones: MOBILE_ZONES, thiefSpawn: MOBILE_THIEF_SPAWN, copSpawn: MOBILE_COP_SPAWN }
+  }
   const candidates = MAZE_LAYOUTS.map((_, i) => i).filter((i) => i !== lastLayoutIndex)
   const pool = candidates.length > 0 ? candidates : MAZE_LAYOUTS.map((_, i) => i)
   const index = pool[Math.floor(Math.random() * pool.length)]
   lastLayoutIndex = index
-  return { grid: MAZE_LAYOUTS[index], index }
+  return { grid: MAZE_LAYOUTS[index], index, zones: ZONES, thiefSpawn: THIEF_SPAWN, copSpawn: COP_SPAWN }
 }
 
 export function isWall(grid: MazeGrid, row: number, col: number): boolean {
-  if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return true
+  const { rows, cols } = gridDims(grid)
+  if (row < 0 || row >= rows || col < 0 || col >= cols) return true
   return grid[row][col] === '#'
 }
 
@@ -180,7 +224,15 @@ export function neighbors(grid: MazeGrid, c: Cell): Cell[] {
 
 export type ZoneId = 'github' | 'api' | 'db' | 'admin' | 'exfil' | 'world'
 
-export const ZONES: { id: ZoneId; label: string; colStart: number; colEnd: number; toast: string }[] = [
+export interface ZoneDef {
+  id: ZoneId
+  label: string
+  colStart: number
+  colEnd: number
+  toast: string
+}
+
+export const ZONES: ZoneDef[] = [
   { id: 'github', label: 'GITHUB', colStart: 0, colEnd: 6, toast: 'Leaked API key found' },
   { id: 'api', label: 'INT_API', colStart: 6, colEnd: 10, toast: 'Logged in with stolen key' },
   { id: 'db', label: 'CUST_DB', colStart: 10, colEnd: 16, toast: 'Reached the customer database' },
@@ -189,8 +241,19 @@ export const ZONES: { id: ZoneId; label: string; colStart: number; colEnd: numbe
   { id: 'world', label: 'WORLD', colStart: 26, colEnd: 32, toast: 'Breach goes undetected' },
 ]
 
-export function zoneForCol(col: number): typeof ZONES[number] {
-  return ZONES.find((z) => col >= z.colStart && col < z.colEnd) ?? ZONES[ZONES.length - 1]
+// Same 6-stage structure/labeling as the desktop ZONES, with column
+// ranges rescaled to the mobile layout's 18 columns.
+export const MOBILE_ZONES: ZoneDef[] = [
+  { id: 'github', label: 'GITHUB', colStart: 0, colEnd: 3, toast: 'Leaked API key found' },
+  { id: 'api', label: 'INT_API', colStart: 3, colEnd: 6, toast: 'Logged in with stolen key' },
+  { id: 'db', label: 'CUST_DB', colStart: 6, colEnd: 9, toast: 'Reached the customer database' },
+  { id: 'admin', label: 'ADMIN', colStart: 9, colEnd: 12, toast: 'Escalated to admin access' },
+  { id: 'exfil', label: 'EXFIL', colStart: 12, colEnd: 15, toast: 'Data quietly exported' },
+  { id: 'world', label: 'WORLD', colStart: 15, colEnd: 18, toast: 'Breach goes undetected' },
+]
+
+export function zoneForCol(col: number, zones: ZoneDef[] = ZONES): ZoneDef {
+  return zones.find((z) => col >= z.colStart && col < z.colEnd) ?? zones[zones.length - 1]
 }
 
 // ============================================================
@@ -199,6 +262,9 @@ export function zoneForCol(col: number): typeof ZONES[number] {
 
 export const THIEF_SPAWN: Cell = { row: 9, col: 16 }
 export const COP_SPAWN: Cell = { row: 1, col: 1 }
+
+export const MOBILE_THIEF_SPAWN: Cell = { row: 9, col: 9 }
+export const MOBILE_COP_SPAWN: Cell = { row: 1, col: 1 }
 
 // ============================================================
 // COINS
@@ -212,9 +278,10 @@ export interface CoinDef {
   power: boolean
 }
 
-function openCellsInZone(grid: MazeGrid, zone: typeof ZONES[number]): Cell[] {
+function openCellsInZone(grid: MazeGrid, zone: ZoneDef): Cell[] {
+  const { rows } = gridDims(grid)
   const cells: Cell[] = []
-  for (let row = 0; row < ROWS; row++) {
+  for (let row = 0; row < rows; row++) {
     for (let col = zone.colStart; col < zone.colEnd; col++) {
       if (!isWall(grid, row, col)) cells.push({ row, col })
     }
@@ -231,11 +298,12 @@ function pickRandom<T>(arr: T[]): T {
 // layout. Avoids walls (by construction, since only open cells are
 // candidates), avoids the thief/cop spawn cells, and avoids placing two
 // coins on the same cell.
-export function generateCoins(grid: MazeGrid): CoinDef[] {
-  const taken = new Set<string>([cellKey(THIEF_SPAWN), cellKey(COP_SPAWN)])
+export function generateCoins(grid: MazeGrid, zones: ZoneDef[] = ZONES, thiefSpawn: Cell = THIEF_SPAWN, copSpawn: Cell = COP_SPAWN): CoinDef[] {
+  const { rows, cols } = gridDims(grid)
+  const taken = new Set<string>([cellKey(thiefSpawn), cellKey(copSpawn)])
   const coins: CoinDef[] = []
 
-  ZONES.forEach((zone, i) => {
+  zones.forEach((zone, i) => {
     const candidates = openCellsInZone(grid, zone).filter((c) => !taken.has(cellKey(c)))
     const cell = candidates.length > 0 ? pickRandom(candidates) : openCellsInZone(grid, zone)[0]
     taken.add(cellKey(cell))
@@ -243,14 +311,14 @@ export function generateCoins(grid: MazeGrid): CoinDef[] {
   })
 
   const allOpen: Cell[] = []
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
       if (!isWall(grid, row, col)) allOpen.push({ row, col })
     }
   }
   const powerCandidates = allOpen.filter((c) => !taken.has(cellKey(c)))
   const powerCell = powerCandidates.length > 0 ? pickRandom(powerCandidates) : allOpen[0]
-  const powerZone = zoneForCol(powerCell.col).id
+  const powerZone = zoneForCol(powerCell.col, zones).id
   coins.push({ id: 'power', row: powerCell.row, col: powerCell.col, zone: powerZone, power: true })
 
   return coins

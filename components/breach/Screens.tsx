@@ -2,6 +2,8 @@
 
 import type { GameMode, GameResult } from '@/components/breach/MazeGame'
 import { ThiefSVG, CopSVG } from '@/components/breach/Sprite'
+import { NodeProgressBar } from '@/components/breach/NodeProgressBar'
+import type { ZoneId } from '@/lib/maze-data'
 
 // ============================================================
 // Shared footer
@@ -26,9 +28,9 @@ function SignatureFooter() {
         </div>
         <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
           {[
-            { label: 'LINKEDIN', href: 'https://linkedin.com/in/abhishekharne' },
-            { label: 'GITHUB', href: 'https://github.com/abhishekharne' },
-            { label: 'PORTFOLIO', href: '#' },
+            { label: 'LINKEDIN', href: 'https://www.linkedin.com/in/abhishek-harne/' },
+            { label: 'GITHUB', href: 'https://github.com/Abhishek-Harne' },
+            { label: 'PORTFOLIO', href: 'https://abhishekharne.vercel.app/' },
           ].map((link) => (
             <a
               key={link.label}
@@ -296,6 +298,7 @@ interface ResultScreenProps {
 export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome }: ResultScreenProps) {
   const won = result.outcome === 'won'
   const accent = won ? '#00ffcc' : '#ff6b4a'
+  const zonesCompleted = new Set<ZoneId>(result.zonesCompleted)
 
   const headline =
     mode === 'thief'
@@ -362,6 +365,10 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
             {result.coinsCollected}/{result.totalCoins}
           </span>
         </div>
+
+        <NodeProgressBar zonesCompleted={zonesCompleted} accent={accent} maxWidth={480} />
+
+        <div style={{ marginTop: '10px' }} />
 
         <button
           onClick={onPlayAgain}

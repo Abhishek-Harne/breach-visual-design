@@ -1,6 +1,6 @@
 'use client'
 
-import { ROWS, COLS, ZONES, type Cell, type MazeGrid } from '@/lib/maze-data'
+import { gridDims, type Cell, type MazeGrid, type ZoneDef } from '@/lib/maze-data'
 import { ThiefSVG, CopSVG } from '@/components/breach/Sprite'
 
 export interface RenderCoin {
@@ -12,6 +12,7 @@ export interface RenderCoin {
 
 interface MazeBoardProps {
   grid: MazeGrid
+  zones: ZoneDef[]
   cellSize: number
   coins: RenderCoin[]
   thiefPos: Cell
@@ -22,6 +23,7 @@ interface MazeBoardProps {
 
 export function MazeBoard({
   grid,
+  zones,
   cellSize,
   coins,
   thiefPos,
@@ -29,8 +31,9 @@ export function MazeBoard({
   copDebuffed,
   shaking,
 }: MazeBoardProps) {
-  const width = COLS * cellSize
-  const height = ROWS * cellSize
+  const { rows, cols } = gridDims(grid)
+  const width = cols * cellSize
+  const height = rows * cellSize
 
   return (
     <div
@@ -65,7 +68,7 @@ export function MazeBoard({
       )}
 
       {/* zone labels */}
-      {ZONES.map((z) => (
+      {zones.map((z) => (
         <div
           key={z.id}
           style={{
