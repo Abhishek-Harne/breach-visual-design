@@ -116,19 +116,32 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             marginBottom: '24px',
           }}
         >
-          — THE CHASE IS REAL-TIME NOW
+          — ONE LEAKED KEY. SIX WAYS IT GOES WRONG.
         </h2>
 
         <div className="breach-card" style={{ padding: '20px', marginBottom: '20px' }}>
           <div className="breach-label" style={{ marginBottom: '10px' }}>
             WHY_THIS_EXISTS:
           </div>
-          <p style={{ fontSize: '0.78rem', color: theme.text, lineHeight: 1.65 }}>
-            Most data breaches don&apos;t happen because of some genius hacker
-            move. They happen because of one small, common mistake — a leaked
-            key, a permission that&apos;s too broad, a system nobody&apos;s
-            watching closely enough. This is a playable walk-through of how
-            that actually happens, and how it gets stopped.
+          <p style={{ fontSize: '0.78rem', color: theme.text, lineHeight: 1.65, marginBottom: '10px' }}>
+            Most data breaches don&apos;t start with a genius hack. They start
+            with one small, ordinary mistake — a key left in the wrong
+            place, a permission that&apos;s a little too broad, a system
+            nobody&apos;s watching closely enough.
+          </p>
+          <p style={{ fontSize: '0.78rem', color: theme.text, lineHeight: 1.65, marginBottom: '14px' }}>
+            This is a playable walk-through of how that mistake actually
+            turns into a full breach — and exactly where it could have been
+            stopped. Play both sides: break in, then try to catch yourself
+            in the act.
+          </p>
+          <div className="breach-label" style={{ marginBottom: '8px' }}>
+            WHAT_YOU_WILL_LEARN:
+          </div>
+          <p style={{ fontSize: '0.74rem', color: hexToRgba(theme.text, 0.85), lineHeight: 1.6 }}>
+            &gt; how one leaked credential becomes a six-stage breach<br />
+            &gt; what a real attacker actually looks for at each step<br />
+            &gt; the exact, well-known fix for each stage along the way
           </p>
         </div>
 
@@ -241,9 +254,8 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               </div>
             </div>
             <p style={{ fontSize: '0.72rem', color: hexToRgba(theme.text, 0.7), lineHeight: 1.55 }}>
-              See how the breach happens — work your way through all six
-              stages while the cop closes in. Grab the zero-day for a window
-              to breathe.
+              Follow the trail a real attacker would. See exactly how far
+              one small opening can take you.
             </p>
           </button>
 
@@ -276,9 +288,8 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               </div>
             </div>
             <p style={{ fontSize: '0.72rem', color: hexToRgba(theme.text, 0.7), lineHeight: 1.55 }}>
-              See how close it gets before it&apos;s caught — hunt down the
-              thief before they finish the job. Watch out — if they find the
-              zero-day, you&apos;ll slow down.
+              Chase down the breach in progress. See how close it really
+              gets before someone notices.
             </p>
           </button>
         </div>

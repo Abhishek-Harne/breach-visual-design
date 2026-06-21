@@ -412,6 +412,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         </div>
       </div>
 
+      {/* Persistent gameplay hint */}
+      <div
+        className="breach-label"
+        style={{ width: '100%', maxWidth: boardWidth, marginBottom: '8px', textAlign: 'center' }}
+      >
+        {mode === 'thief' ? 'COLLECT THE STARS TO COMPLETE THE HACK' : 'CATCH THE THIEF BEFORE THEY COMPLETE THE HACK'}
+      </div>
+
       {/* Toasts */}
       <div
         style={{
