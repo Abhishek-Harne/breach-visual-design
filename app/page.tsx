@@ -3,6 +3,9 @@
 import { useCallback, useState } from 'react'
 import { WelcomeScreen, ModeChoiceScreen, ResultScreen } from '@/components/breach/Screens'
 import { MazeGame, type GameMode, type GameResult } from '@/components/breach/MazeGame'
+import { ThemeProvider } from '@/components/breach/ThemeContext'
+import { ThemeToggle } from '@/components/breach/ThemeToggle'
+import { HamburgerMenu } from '@/components/breach/HamburgerMenu'
 
 type Screen = 'welcome' | 'modeChoice' | 'game' | 'result'
 
@@ -43,21 +46,25 @@ export default function Page() {
     setSeenHowTo((prev) => ({ ...prev, [m]: true }))
   }, [])
 
-  if (screen === 'welcome') {
-    return <WelcomeScreen onStart={handleStart} />
-  }
+  const handleResetProgress = useCallback(() => {
+    setResult(null)
+    setSeenHowTo({ thief: false, cop: false })
+    setGameKey(0)
+    setScreen('welcome')
+  }, [])
 
-  if (screen === 'modeChoice') {
-    return (
+  let content: React.ReactNode
+  if (screen === 'welcome') {
+    content = <WelcomeScreen onStart={handleStart} />
+  } else if (screen === 'modeChoice') {
+    content = (
       <ModeChoiceScreen
         onSelectThief={() => handleSelectMode('thief')}
         onSelectCop={() => handleSelectMode('cop')}
       />
     )
-  }
-
-  if (screen === 'result' && result) {
-    return (
+  } else if (screen === 'result' && result) {
+    content = (
       <ResultScreen
         mode={mode}
         result={result}
@@ -66,16 +73,24 @@ export default function Page() {
         onGoHome={handleGoHome}
       />
     )
+  } else {
+    content = (
+      <MazeGame
+        key={gameKey}
+        mode={mode}
+        onFinish={handleFinish}
+        onExit={handleGoHome}
+        showHowToInitially={!seenHowTo[mode]}
+        onHowToSeen={() => handleHowToSeen(mode)}
+      />
+    )
   }
 
   return (
-    <MazeGame
-      key={gameKey}
-      mode={mode}
-      onFinish={handleFinish}
-      onExit={handleGoHome}
-      showHowToInitially={!seenHowTo[mode]}
-      onHowToSeen={() => handleHowToSeen(mode)}
-    />
+    <ThemeProvider>
+      <HamburgerMenu mode={mode} onResetProgress={handleResetProgress} />
+      <ThemeToggle />
+      <div style={{ paddingTop: '46px' }}>{content}</div>
+    </ThemeProvider>
   )
 }

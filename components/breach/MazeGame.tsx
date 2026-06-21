@@ -2,11 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  COLS,
-  COP_SPAWN,
-  ROWS,
-  THIEF_SPAWN,
-  ZONES,
+  gridDims,
   generateCoins,
   pickLayout,
   sameCell,
@@ -15,14 +11,22 @@ import {
   type CoinDef,
   type Direction,
   type MazeGrid,
+  type ZoneDef,
   type ZoneId,
 } from '@/lib/maze-data'
 import { bfsNextStep, thiefAiNextStep, tryMove } from '@/lib/maze-engine'
 import { MazeBoard, type RenderCoin } from '@/components/breach/MazeBoard'
-import { NODE_CONTENT } from '@/lib/node-content'
+import { NodeProgressBar } from '@/components/breach/NodeProgressBar'
+import { HowToPlayContent } from '@/components/breach/HowToPlayContent'
+import { useTheme, hexToRgba } from '@/components/breach/ThemeContext'
 
 export type GameMode = 'thief' | 'cop'
-export type GameResult = { outcome: 'won' | 'lost'; coinsCollected: number; totalCoins: number }
+export type GameResult = {
+  outcome: 'won' | 'lost'
+  coinsCollected: number
+  totalCoins: number
+  zonesCompleted: ZoneId[]
+}
 
 interface MazeGameProps {
   mode: GameMode
@@ -43,11 +47,21 @@ const TOAST_TTL_MS = 1400
 
 let toastSeq = 0
 
+// Below this viewport width, load the mobile-specific maze layout
+// (fewer columns) instead of squeezing a desktop layout into a narrow
+// screen.
+const MOBILE_BREAKPOINT = 600
+
 export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSeen }: MazeGameProps) {
-  const [grid] = useState<MazeGrid>(() => pickLayout().grid)
-  const [coins] = useState<CoinDef[]>(() => generateCoins(grid))
-  const [thiefPos, setThiefPos] = useState<Cell>(THIEF_SPAWN)
-  const [copPos, setCopPos] = useState<Cell>(COP_SPAWN)
+  const { palette: theme } = useTheme()
+  const [layout] = useState(() =>
+    pickLayout(typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT)
+  )
+  const { grid, zones, thiefSpawn, copSpawn } = layout
+  const { rows, cols } = gridDims(grid)
+  const [coins] = useState<CoinDef[]>(() => generateCoins(grid, zones, thiefSpawn, copSpawn))
+  const [thiefPos, setThiefPos] = useState<Cell>(thiefSpawn)
+  const [copPos, setCopPos] = useState<Cell>(copSpawn)
   const [collected, setCollected] = useState<Set<string>>(new Set())
   const [phase, setPhase] = useState<'playing' | 'caught' | 'won' | 'lost'>('playing')
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([])
@@ -55,15 +69,6 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
   const [copDebuffed, setCopDebuffed] = useState(false)
   const [cellSize, setCellSize] = useState(26)
   const [howToOpen, setHowToOpen] = useState(showHowToInitially)
-
-  // Node learning panel — purely informational UI layered on top of the
-  // progress bar. Never touches pausedRef/game-tick state; the chase
-  // keeps running underneath it regardless of whether it's open.
-  const [openNodeId, setOpenNodeId] = useState<ZoneId | null>(null)
-  const [hoveredNodeId, setHoveredNodeId] = useState<ZoneId | null>(null)
-  const [hasOpenedNode, setHasOpenedNode] = useState(false)
-  const nodePanelRef = useRef<HTMLDivElement | null>(null)
-  const nodeBarRef = useRef<HTMLDivElement | null>(null)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const thiefPosRef = useRef(thiefPos)
@@ -100,44 +105,19 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       const reservedVertical = 300 // outer padding + HUD + dpad + progress bar + gaps, approx
       const widthBudget = window.innerWidth - horizontalPadding
       const heightBudget = window.innerHeight - reservedVertical
-      const widthBased = Math.floor(widthBudget / COLS)
-      const heightBased = Math.floor(heightBudget / ROWS)
-      // The maze is much wider (32 cols) than it is tall (19 rows). On
-      // portrait/narrow viewports, sizing purely by width leaves the board
-      // tiny with dead space above/below — so there we size by height
-      // instead and let the board scroll horizontally. On landscape/desktop
-      // viewports width is the more generous dimension, so the usual
-      // fit-both-dimensions sizing already fills the screen without
-      // overflowing vertically.
-      const isPortrait = window.innerHeight > window.innerWidth
-      const fit = isPortrait ? heightBased : Math.min(widthBased, heightBased)
+      const widthBased = Math.floor(widthBudget / cols)
+      const heightBased = Math.floor(heightBudget / rows)
+      // Always fit both dimensions so the board never overflows the
+      // viewport horizontally or vertically — the mobile-specific layout
+      // (fewer columns) keeps this comfortably tappable on narrow screens.
+      const fit = Math.min(widthBased, heightBased)
       const size = Math.max(8, Math.min(44, fit))
       setCellSize(size)
     }
     resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  // ----------------------------------------------------------------
-  // Node learning panel — dismiss on click/tap outside the panel
-  // ----------------------------------------------------------------
-  useEffect(() => {
-    if (!openNodeId) return
-    function onPointerDown(e: PointerEvent) {
-      const target = e.target as Node
-      if (nodePanelRef.current?.contains(target)) return
-      if (nodeBarRef.current?.contains(target)) return
-      setOpenNodeId(null)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [openNodeId])
-
-  const handleNodeClick = useCallback((id: ZoneId) => {
-    setHasOpenedNode(true)
-    setOpenNodeId((current) => (current === id ? null : id))
-  }, [])
+  }, [cols, rows])
 
   // ----------------------------------------------------------------
   // Keyboard input
@@ -222,7 +202,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         collectedRef.current = nextCollected
         setCollected(nextCollected)
 
-        const zone = zoneForCol(coin.col)
+        const zone = zoneForCol(coin.col, zones)
         const text = coin.power ? 'ZERO-DAY EXPLOIT FOUND' : zone.toast
         const id = ++toastSeq
         setToasts((t) => [...t, { id, text }])
@@ -338,10 +318,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
     if (phase === 'won' || phase === 'lost' || phase === 'caught') {
       const outcome = phase === 'won' ? 'won' : 'lost'
       const t = setTimeout(() => {
+        const zonesCompleted = Array.from(
+          new Set(coins.filter((c) => !c.power && collectedRef.current.has(c.id)).map((c) => c.zone))
+        )
         onFinish({
           outcome,
           coinsCollected: collectedRef.current.size,
           totalCoins: coins.length,
+          zonesCompleted,
         })
       }, 900)
       return () => clearTimeout(t)
@@ -355,19 +339,19 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
     power: c.power,
   }))
 
-  const accent = mode === 'thief' ? '#ff6b4a' : '#00ffcc'
+  const accent = mode === 'thief' ? theme.orange : theme.teal
 
   const zonesCompleted = new Set<ZoneId>(
     coins.filter((c) => !c.power && collected.has(c.id)).map((c) => c.zone)
   )
 
-  const boardWidth = cellSize * COLS
+  const boardWidth = cellSize * cols
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: theme.bg,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -396,11 +380,11 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             onClick={() => setHowToOpen(true)}
             aria-label="How to play"
             style={{
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: `1px solid ${theme.borderMed}`,
               borderRadius: '2px',
               padding: '5px 10px',
-              background: '#0f0f18',
-              color: 'rgba(226,232,240,0.45)',
+              background: theme.surface,
+              color: theme.muted,
               fontSize: '0.55rem',
               letterSpacing: '0.1em',
               cursor: 'pointer',
@@ -412,11 +396,11 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
           <button
             onClick={onExit}
             style={{
-              border: '1px solid rgba(255,255,255,0.18)',
+              border: `1px solid ${theme.borderMed}`,
               borderRadius: '2px',
               padding: '5px 10px',
-              background: '#0f0f18',
-              color: 'rgba(226,232,240,0.45)',
+              background: theme.surface,
+              color: theme.muted,
               fontSize: '0.55rem',
               letterSpacing: '0.1em',
               cursor: 'pointer',
@@ -426,6 +410,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             ← HOME
           </button>
         </div>
+      </div>
+
+      {/* Persistent gameplay hint */}
+      <div
+        className="breach-label"
+        style={{ width: '100%', maxWidth: boardWidth, marginBottom: '8px', textAlign: 'center' }}
+      >
+        {mode === 'thief' ? 'COLLECT THE STARS TO COMPLETE THE HACK' : 'CATCH THE THIEF BEFORE THEY COMPLETE THE HACK'}
       </div>
 
       {/* Toasts */}
@@ -448,13 +440,13 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             key={t.id}
             className="panel-fade-in"
             style={{
-              background: 'rgba(15,15,24,0.92)',
-              border: '1px solid rgba(0,255,204,0.4)',
+              background: hexToRgba(theme.surface, 0.92),
+              border: `1px solid ${hexToRgba(theme.teal, 0.4)}`,
               borderRadius: '2px',
               padding: '6px 12px',
               fontSize: '0.62rem',
               letterSpacing: '0.05em',
-              color: '#00ffcc',
+              color: theme.teal,
               whiteSpace: 'nowrap',
             }}
           >
@@ -471,6 +463,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       >
         <MazeBoard
           grid={grid}
+          zones={zones}
           cellSize={cellSize}
           coins={renderCoins}
           thiefPos={thiefPos}
@@ -502,134 +495,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
       </div>
 
       {/* Hack progress bar */}
-      <div style={{ width: '100%', maxWidth: boardWidth, marginTop: '18px', position: 'relative' }}>
-        <div className="breach-label" style={{ marginBottom: '6px' }}>
-          HACK_PROGRESS: <span style={{ color: '#00ffcc' }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
-        </div>
-        <div ref={nodeBarRef} style={{ display: 'flex', gap: '8px' }}>
-          {ZONES.map((z) => {
-            const done = zonesCompleted.has(z.id)
-            const hovered = hoveredNodeId === z.id
-            const isOpen = openNodeId === z.id
-            return (
-              <button
-                key={z.id}
-                onClick={() => handleNodeClick(z.id)}
-                onMouseEnter={() => setHoveredNodeId(z.id)}
-                onMouseLeave={() => setHoveredNodeId((id) => (id === z.id ? null : id))}
-                aria-label={`Learn about the ${z.label} stage`}
-                style={{
-                  flex: 1,
-                  position: 'relative',
-                  height: '8px',
-                  border: `1px solid ${isOpen ? '#00ffcc' : 'rgba(0,255,204,0.3)'}`,
-                  borderRadius: '1px',
-                  overflow: 'visible',
-                  background: 'rgba(15,15,24,0.8)',
-                  padding: 0,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transform: hovered ? 'scale(1.045)' : 'scale(1)',
-                  transition: 'transform 150ms ease-out, border-color 150ms ease-out',
-                }}
-              >
-                <div
-                  style={{
-                    width: done ? '100%' : '0%',
-                    height: '100%',
-                    background: '#00ffcc',
-                    transition: 'width 300ms ease-out',
-                    overflow: 'hidden',
-                  }}
-                />
-                <span
-                  className={hasOpenedNode ? 'node-icon-pulse-subtle' : 'node-icon-pulse'}
-                  style={{
-                    position: 'absolute',
-                    top: '-5px',
-                    right: '-5px',
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    border: '1px solid rgba(0,255,204,0.7)',
-                    background: '#0a0a0f',
-                    color: '#00ffcc',
-                    fontSize: '6px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    pointerEvents: 'none',
-                  }}
-                >
-                  i
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Node learning panel — informational only, never pauses the game */}
-        {openNodeId && (
-          <div
-            ref={nodePanelRef}
-            className="breach-card panel-fade-in"
-            style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 10px)',
-              left: 0,
-              right: 0,
-              padding: '14px 16px',
-              zIndex: 50,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: '10px',
-                marginBottom: '8px',
-              }}
-            >
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: accent, letterSpacing: '0.04em' }}>
-                {ZONES.find((z) => z.id === openNodeId)?.label} — {NODE_CONTENT[openNodeId].name}
-              </div>
-              <button
-                onClick={() => setOpenNodeId(null)}
-                aria-label="Close"
-                style={{
-                  border: '1px solid rgba(255,255,255,0.18)',
-                  borderRadius: '2px',
-                  padding: '2px 6px',
-                  background: '#0f0f18',
-                  color: 'rgba(226,232,240,0.6)',
-                  fontSize: '0.6rem',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  flexShrink: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <p style={{ fontSize: '0.68rem', color: '#e2e8f0', lineHeight: 1.55, marginBottom: '6px' }}>
-              <span style={{ color: '#ff6b4a', fontWeight: 700 }}>EXPLOIT: </span>
-              {NODE_CONTENT[openNodeId].exploit}
-            </p>
-            <p style={{ fontSize: '0.68rem', color: '#e2e8f0', lineHeight: 1.55, marginBottom: '6px' }}>
-              <span style={{ color: '#00ffcc', fontWeight: 700 }}>DEFENSE: </span>
-              {NODE_CONTENT[openNodeId].defense}
-            </p>
-            <p style={{ fontSize: '0.68rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.55 }}>
-              <span style={{ fontWeight: 700 }}>DO / DON&apos;T: </span>
-              {NODE_CONTENT[openNodeId].doDont}
-            </p>
-          </div>
-        )}
-      </div>
+      <NodeProgressBar zonesCompleted={zonesCompleted} accent={accent} maxWidth={boardWidth} />
 
       {/* How-to-play popup */}
       {howToOpen && (
@@ -641,7 +507,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10,10,15,0.85)',
+            background: theme.overlay,
             padding: '16px',
           }}
         >
@@ -658,21 +524,9 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
               HOW TO PLAY
             </div>
 
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
-              Use arrow keys or WASD to move. On touch devices, swipe or use
-              the on-screen D-pad.
-            </p>
-
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
-              {mode === 'thief'
-                ? 'Each star is a real step in a data breach — collect them to complete the hack.'
-                : 'Each star the thief grabs is a step toward finishing the breach — stop them before they collect them all.'}
-            </p>
-
-            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '18px' }}>
-              The diamond is a zero-day exploit — grab it for a brief
-              advantage that slows down your opponent.
-            </p>
+            <div style={{ marginBottom: '8px' }}>
+              <HowToPlayContent mode={mode} />
+            </div>
 
             <button
               onClick={handleHowToDismiss}
@@ -707,7 +561,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10,10,15,0.85)',
+            background: theme.overlay,
           }}
         >
           <div className="breach-card" style={{ padding: '28px', maxWidth: '320px', textAlign: 'center' }}>
@@ -717,14 +571,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 marginBottom: '12px',
-                color: phase === 'won' ? '#00ffcc' : '#ff6b4a',
+                color: phase === 'won' ? theme.teal : theme.orange,
               }}
             >
               {phase === 'caught' && 'CAUGHT!'}
               {phase === 'won' && (mode === 'thief' ? 'BREACH COMPLETE' : 'SUSPECT CAUGHT')}
               {phase === 'lost' && 'BREACH SUCCEEDED'}
             </div>
-            <p style={{ fontSize: '0.7rem', color: 'rgba(226,232,240,0.6)' }}>
+            <p style={{ fontSize: '0.7rem', color: theme.muted }}>
               {collected.size}/{coins.length} coins collected
             </p>
           </div>
@@ -735,6 +589,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
 }
 
 function DpadButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { palette: theme } = useTheme()
   return (
     <button
       onMouseDown={onPress}
@@ -743,10 +598,10 @@ function DpadButton({ label, onPress }: { label: string; onPress: () => void }) 
         onPress()
       }}
       style={{
-        border: '1px solid rgba(255,255,255,0.18)',
+        border: `1px solid ${theme.borderMed}`,
         borderRadius: '2px',
-        background: '#0f0f18',
-        color: 'rgba(226,232,240,0.6)',
+        background: theme.surface,
+        color: theme.muted,
         fontSize: '0.9rem',
         cursor: 'pointer',
       }}

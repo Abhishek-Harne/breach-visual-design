@@ -2,16 +2,20 @@
 
 import type { GameMode, GameResult } from '@/components/breach/MazeGame'
 import { ThiefSVG, CopSVG } from '@/components/breach/Sprite'
+import { NodeProgressBar } from '@/components/breach/NodeProgressBar'
+import { useTheme, hexToRgba } from '@/components/breach/ThemeContext'
+import type { ZoneId } from '@/lib/maze-data'
 
 // ============================================================
 // Shared footer
 // ============================================================
 
 function SignatureFooter() {
+  const { palette: theme } = useTheme()
   return (
     <footer
       style={{
-        borderTop: '1px solid rgba(255,255,255,0.1)',
+        borderTop: `1px solid ${theme.borderFaint}`,
         padding: '20px 24px',
         marginTop: 'auto',
       }}
@@ -19,16 +23,16 @@ function SignatureFooter() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <span className="breach-label">SYSTEM_OPERATOR:</span>
-          <span style={{ fontSize: '0.65rem', color: '#00ffcc' }}>@Abhishek Harne</span>
+          <span style={{ fontSize: '0.65rem', color: theme.teal }}>@Abhishek Harne</span>
         </div>
-        <div style={{ fontSize: '0.6rem', color: 'rgba(226,232,240,0.35)', letterSpacing: '0.06em' }}>
+        <div style={{ fontSize: '0.6rem', color: theme.mutedFaint, letterSpacing: '0.06em' }}>
           MADE WITH LOVE AND CURIOSITY
         </div>
         <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
           {[
-            { label: 'LINKEDIN', href: 'https://linkedin.com/in/abhishekharne' },
-            { label: 'GITHUB', href: 'https://github.com/abhishekharne' },
-            { label: 'PORTFOLIO', href: '#' },
+            { label: 'LINKEDIN', href: 'https://www.linkedin.com/in/abhishek-harne/' },
+            { label: 'GITHUB', href: 'https://github.com/Abhishek-Harne' },
+            { label: 'PORTFOLIO', href: 'https://abhishekharne.vercel.app/' },
           ].map((link) => (
             <a
               key={link.label}
@@ -37,15 +41,15 @@ function SignatureFooter() {
               rel="noopener noreferrer"
               style={{
                 fontSize: '0.6rem',
-                color: 'rgba(226,232,240,0.45)',
+                color: theme.muted,
                 letterSpacing: '0.08em',
                 textDecoration: 'none',
-                borderBottom: '1px solid rgba(226,232,240,0.2)',
+                borderBottom: `1px solid ${theme.borderMed}`,
                 paddingBottom: '1px',
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#00ffcc')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(226,232,240,0.45)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = theme.teal)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = theme.muted)}
             >
               {link.label}
             </a>
@@ -65,13 +69,14 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
+  const { palette: theme } = useTheme()
   return (
     <div
       style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: theme.bg,
       }}
     >
       <main
@@ -94,7 +99,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           style={{
             fontSize: 'clamp(1.8rem, 6vw, 2.8rem)',
             fontWeight: 700,
-            color: '#e2e8f0',
+            color: theme.text,
             lineHeight: 1.1,
             letterSpacing: '-0.02em',
             marginBottom: '6px',
@@ -106,24 +111,37 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           style={{
             fontSize: 'clamp(0.75rem, 3vw, 1rem)',
             fontWeight: 400,
-            color: '#00ffcc',
+            color: theme.teal,
             letterSpacing: '0.15em',
             marginBottom: '24px',
           }}
         >
-          — THE CHASE IS REAL-TIME NOW
+          — ONE LEAKED KEY. SIX WAYS IT GOES WRONG.
         </h2>
 
         <div className="breach-card" style={{ padding: '20px', marginBottom: '20px' }}>
           <div className="breach-label" style={{ marginBottom: '10px' }}>
             WHY_THIS_EXISTS:
           </div>
-          <p style={{ fontSize: '0.78rem', color: '#e2e8f0', lineHeight: 1.65 }}>
-            Most data breaches don&apos;t happen because of some genius hacker
-            move. They happen because of one small, common mistake — a leaked
-            key, a permission that&apos;s too broad, a system nobody&apos;s
-            watching closely enough. This is a playable walk-through of how
-            that actually happens, and how it gets stopped.
+          <p style={{ fontSize: '0.78rem', color: theme.text, lineHeight: 1.65, marginBottom: '10px' }}>
+            Most data breaches don&apos;t start with a genius hack. They start
+            with one small, ordinary mistake — a key left in the wrong
+            place, a permission that&apos;s a little too broad, a system
+            nobody&apos;s watching closely enough.
+          </p>
+          <p style={{ fontSize: '0.78rem', color: theme.text, lineHeight: 1.65, marginBottom: '14px' }}>
+            This is a playable walk-through of how that mistake actually
+            turns into a full breach — and exactly where it could have been
+            stopped. Play both sides: break in, then try to catch yourself
+            in the act.
+          </p>
+          <div className="breach-label" style={{ marginBottom: '8px' }}>
+            WHAT_YOU_WILL_LEARN:
+          </div>
+          <p style={{ fontSize: '0.74rem', color: hexToRgba(theme.text, 0.85), lineHeight: 1.6 }}>
+            &gt; how one leaked credential becomes a six-stage breach<br />
+            &gt; what a real attacker actually looks for at each step<br />
+            &gt; the exact, well-known fix for each stage along the way
           </p>
         </div>
 
@@ -131,13 +149,13 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           <div className="breach-label" style={{ marginBottom: '10px' }}>
             PICK_A_SIDE:
           </div>
-          <p style={{ fontSize: '0.74rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.6, marginBottom: '8px' }}>
-            <span style={{ color: '#ff6b4a', fontWeight: 700 }}>Thief — </span>
+          <p style={{ fontSize: '0.74rem', color: hexToRgba(theme.text, 0.85), lineHeight: 1.6, marginBottom: '8px' }}>
+            <span style={{ color: theme.orange, fontWeight: 700 }}>Thief — </span>
             see how far one small mistake can take someone, from a single
             leaked key to a full breach.
           </p>
-          <p style={{ fontSize: '0.74rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.6 }}>
-            <span style={{ color: '#00ffcc', fontWeight: 700 }}>Cop — </span>
+          <p style={{ fontSize: '0.74rem', color: hexToRgba(theme.text, 0.85), lineHeight: 1.6 }}>
+            <span style={{ color: theme.teal, fontWeight: 700 }}>Cop — </span>
             see how close attacks usually come before they&apos;re caught, and
             what it actually takes to stop one in time.
           </p>
@@ -146,11 +164,11 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         <button
           onClick={onStart}
           style={{
-            border: '1px solid #00ffcc',
+            border: `1px solid ${theme.teal}`,
             borderRadius: '2px',
             padding: '14px 28px',
             background: 'transparent',
-            color: '#00ffcc',
+            color: theme.teal,
             fontSize: '0.7rem',
             letterSpacing: '0.14em',
             fontWeight: 700,
@@ -159,7 +177,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             transition: 'background 0.15s',
             width: '100%',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,255,204,0.08)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = hexToRgba(theme.teal, 0.08))}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           START SIMULATION →
@@ -180,13 +198,14 @@ interface ModeChoiceScreenProps {
 }
 
 export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScreenProps) {
+  const { palette: theme } = useTheme()
   return (
     <div
       style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: theme.bg,
       }}
     >
       <main
@@ -214,30 +233,29 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               textAlign: 'left',
               cursor: 'pointer',
               background: 'transparent',
-              border: '1px solid rgba(255,107,74,0.4)',
+              border: `1px solid ${hexToRgba(theme.orange, 0.4)}`,
               borderRadius: '2px',
               fontFamily: 'inherit',
               transition: 'border-color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#ff6b4a'
-              e.currentTarget.style.background = 'rgba(255,107,74,0.05)'
+              e.currentTarget.style.borderColor = theme.orange
+              e.currentTarget.style.background = hexToRgba(theme.orange, 0.05)
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,107,74,0.4)'
+              e.currentTarget.style.borderColor = hexToRgba(theme.orange, 0.4)
               e.currentTarget.style.background = 'transparent'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
               <ThiefSVG size={48} />
-              <div style={{ fontSize: '0.65rem', color: '#ff6b4a', letterSpacing: '0.1em', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.65rem', color: theme.orange, letterSpacing: '0.1em', fontWeight: 700 }}>
                 PLAY AS THE THIEF
               </div>
             </div>
-            <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              See how the breach happens — work your way through all six
-              stages while the cop closes in. Grab the zero-day for a window
-              to breathe.
+            <p style={{ fontSize: '0.72rem', color: hexToRgba(theme.text, 0.7), lineHeight: 1.55 }}>
+              Follow the trail a real attacker would. See exactly how far
+              one small opening can take you.
             </p>
           </button>
 
@@ -249,30 +267,29 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               textAlign: 'left',
               cursor: 'pointer',
               background: 'transparent',
-              border: '1px solid rgba(0,255,204,0.4)',
+              border: `1px solid ${hexToRgba(theme.teal, 0.4)}`,
               borderRadius: '2px',
               fontFamily: 'inherit',
               transition: 'border-color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#00ffcc'
-              e.currentTarget.style.background = 'rgba(0,255,204,0.05)'
+              e.currentTarget.style.borderColor = theme.teal
+              e.currentTarget.style.background = hexToRgba(theme.teal, 0.05)
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(0,255,204,0.4)'
+              e.currentTarget.style.borderColor = hexToRgba(theme.teal, 0.4)
               e.currentTarget.style.background = 'transparent'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
               <CopSVG size={48} />
-              <div style={{ fontSize: '0.65rem', color: '#00ffcc', letterSpacing: '0.1em', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.65rem', color: theme.teal, letterSpacing: '0.1em', fontWeight: 700 }}>
                 PLAY AS THE COP
               </div>
             </div>
-            <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              See how close it gets before it&apos;s caught — hunt down the
-              thief before they finish the job. Watch out — if they find the
-              zero-day, you&apos;ll slow down.
+            <p style={{ fontSize: '0.72rem', color: hexToRgba(theme.text, 0.7), lineHeight: 1.55 }}>
+              Chase down the breach in progress. See how close it really
+              gets before someone notices.
             </p>
           </button>
         </div>
@@ -294,8 +311,10 @@ interface ResultScreenProps {
 }
 
 export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome }: ResultScreenProps) {
+  const { palette: theme } = useTheme()
   const won = result.outcome === 'won'
-  const accent = won ? '#00ffcc' : '#ff6b4a'
+  const accent = won ? theme.teal : theme.orange
+  const zonesCompleted = new Set<ZoneId>(result.zonesCompleted)
 
   const headline =
     mode === 'thief'
@@ -321,7 +340,7 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#0a0a0f',
+        backgroundColor: theme.bg,
       }}
     >
       <main
@@ -350,7 +369,7 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
         >
           {headline}
         </h2>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.6, marginBottom: '20px' }}>
+        <p style={{ fontSize: '0.75rem', color: hexToRgba(theme.text, 0.7), lineHeight: 1.6, marginBottom: '20px' }}>
           {subtext}
         </p>
 
@@ -362,6 +381,10 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
             {result.coinsCollected}/{result.totalCoins}
           </span>
         </div>
+
+        <NodeProgressBar zonesCompleted={zonesCompleted} accent={accent} maxWidth={480} />
+
+        <div style={{ marginTop: '10px' }} />
 
         <button
           onClick={onPlayAgain}
@@ -386,11 +409,11 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
         <button
           onClick={onSwitchMode}
           style={{
-            border: '1px solid rgba(226,232,240,0.3)',
+            border: `1px solid ${theme.borderMed}`,
             borderRadius: '2px',
             padding: '14px 24px',
             background: 'transparent',
-            color: 'rgba(226,232,240,0.7)',
+            color: hexToRgba(theme.text, 0.7),
             fontSize: '0.65rem',
             letterSpacing: '0.1em',
             fontWeight: 700,
@@ -406,11 +429,11 @@ export function ResultScreen({ mode, result, onPlayAgain, onSwitchMode, onGoHome
         <button
           onClick={onGoHome}
           style={{
-            border: '1px solid rgba(226,232,240,0.15)',
+            border: `1px solid ${theme.borderFaint}`,
             borderRadius: '2px',
             padding: '12px 24px',
             background: 'transparent',
-            color: 'rgba(226,232,240,0.45)',
+            color: theme.muted,
             fontSize: '0.6rem',
             letterSpacing: '0.1em',
             cursor: 'pointer',
