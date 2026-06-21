@@ -42,7 +42,34 @@ export function bfsNextStep(grid: MazeGrid, start: Cell, target: Cell): Cell | n
 }
 
 // ============================================================
-// THIEF AI — heuristic move toward nearest coin, away from cop
+// BFS DISTANCE MAP — full flood-fill distances from a source, used by
+// the thief AI to reason about actual maze distance rather than
+// straight-line distance.
+// ============================================================
+
+function bfsDistances(grid: MazeGrid, start: Cell): Map<string, number> {
+  const startKey = `${start.row},${start.col}`
+  const dist = new Map<string, number>([[startKey, 0]])
+  const queue: Cell[] = [start]
+
+  while (queue.length) {
+    const current = queue.shift()!
+    const currentKey = `${current.row},${current.col}`
+    const d = dist.get(currentKey)!
+    for (const n of neighbors(grid, current)) {
+      const key = `${n.row},${n.col}`
+      if (dist.has(key)) continue
+      dist.set(key, d + 1)
+      queue.push(n)
+    }
+  }
+
+  return dist
+}
+
+// ============================================================
+// THIEF AI — BFS pathfinding toward nearest coin (by real maze
+// distance), fleeing from the cop (by real maze distance) when close
 // ============================================================
 
 const HESITATION_CHANCE = 1 / 7
@@ -63,14 +90,15 @@ export function thiefAiNextStep(
     return options[Math.floor(Math.random() * options.length)]
   }
 
-  const distToCop = manhattan(thiefPos, copPos)
+  const distFromCop = bfsDistances(grid, copPos)
+  const distToCop = distFromCop.get(`${thiefPos.row},${thiefPos.col}`) ?? manhattan(thiefPos, copPos)
 
   if (distToCop <= fleeRadius) {
-    // Self-preservation: pick the neighbor that maximizes distance from the cop.
+    // Self-preservation: pick the neighbor that maximizes real maze distance from the cop.
     let best = options[0]
     let bestScore = -Infinity
     for (const o of options) {
-      const score = manhattan(o, copPos)
+      const score = distFromCop.get(`${o.row},${o.col}`) ?? manhattan(o, copPos)
       if (score > bestScore) {
         bestScore = score
         best = o
@@ -81,26 +109,21 @@ export function thiefAiNextStep(
 
   if (coins.length === 0) return thiefPos
 
+  // Find the nearest coin by real maze distance, then take the BFS-computed
+  // shortest-path step toward it (same approach the cop uses to chase).
+  const distFromThief = bfsDistances(grid, thiefPos)
   let nearestCoin = coins[0]
-  let nearestDist = manhattan(thiefPos, nearestCoin)
+  let nearestDist = distFromThief.get(`${coins[0].row},${coins[0].col}`) ?? Infinity
   for (const c of coins) {
-    const d = manhattan(thiefPos, c)
+    const d = distFromThief.get(`${c.row},${c.col}`) ?? Infinity
     if (d < nearestDist) {
       nearestDist = d
       nearestCoin = c
     }
   }
 
-  let best = options[0]
-  let bestDist = manhattan(options[0], nearestCoin)
-  for (const o of options) {
-    const d = manhattan(o, nearestCoin)
-    if (d < bestDist) {
-      bestDist = d
-      best = o
-    }
-  }
-  return best
+  const step = bfsNextStep(grid, thiefPos, nearestCoin)
+  return step ?? options[Math.floor(Math.random() * options.length)]
 }
 
 // ============================================================

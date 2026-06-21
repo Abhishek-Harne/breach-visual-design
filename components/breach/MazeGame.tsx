@@ -506,7 +506,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         <div className="breach-label" style={{ marginBottom: '6px' }}>
           HACK_PROGRESS: <span style={{ color: '#00ffcc' }}>{zonesCompleted.size}/{ZONES.length} SYSTEMS COMPROMISED</span>
         </div>
-        <div ref={nodeBarRef} style={{ display: 'flex', gap: '3px' }}>
+        <div ref={nodeBarRef} style={{ display: 'flex', gap: '8px' }}>
           {ZONES.map((z) => {
             const done = zonesCompleted.has(z.id)
             const hovered = hoveredNodeId === z.id
