@@ -1,42 +1,147 @@
 // ============================================================
-// MAZE GRID
+// MAZE LAYOUTS
 // ============================================================
 // '#' = wall, '.' = open path. 32 cols x 19 rows.
-// Generated via recursive-backtracker spanning tree + sparse extra
-// loop edges, then connectivity-safe pruning of inter-zone boundary
-// columns to narrow zone crossings without creating dead-end-only
-// transitions. Verified fully connected.
+//
+// 5 distinct hand-authored layouts, one randomly selected per round.
+// Each starts from a recursive-backtracker spanning tree (a "perfect"
+// maze — exactly one path between any two points), then has extra
+// loop edges carved in, then is reinforced so that the 4 corners, the
+// WORLD zone, and every inter-zone boundary have multiple independent
+// crossing points — no region is reachable by a single thread-like
+// corridor. All 5 are verified fully connected with both spawn cells
+// open.
 
-export const MAZE_ROWS: string[] = [
-  '################################',
-  '#.#...........#.#.#.#.......#.##',
-  '#.#.#######.#.#.#.#.#######.#.##',
-  '#.#.#.#.....#...#.#...#...#...##',
-  '#.#.#.#########.#.###.#.#.#.####',
-  '#.#.#.#...#.....#...#.....#...##',
-  '#.#.#.###.#.#.#####.#.#####.#.##',
-  '#.#.#...#.#.#...#.#.#.......#.##',
-  '#.#####.#.#.#.###.#.#######.#.##',
-  '#...#...#.......#.#.#.....#...##',
-  '###.#.#########.#.#.###.#####.##',
-  '#.....#.........#.#...#.#.....##',
-  '#.#.###.#####.###.###.#.#.###.##',
-  '#.....#.#.............#...#.#.##',
-  '#.###.#############.#.###.#.#.##',
-  '#.#...#...#...#.....#.....#.#.##',
-  '#.#.###.#.#.#.#######.#.###.#.##',
-  '#.......#...#...........#.....##',
-  '################################',
+export const MAZE_LAYOUTS: string[][] = [
+  [
+    '################################',
+    '#.#.............#.......#.....##',
+    '#.#.#####.#.###.#.#######.#.#.##',
+    '#...#.#...#...#.#.#.......#.#.##',
+    '#.#.#.#.###.#.#.#.#.#.#.#.#.#.##',
+    '#.#...#.....#.#.#.....#...#.#.##',
+    '#.#.###.#.#.#.#.###.###.#.#.#.##',
+    '#...#...#.#.........#...#.....##',
+    '#.#.#.###.#.###.#.#.#.#.#.###.##',
+    '#.....#...........#.#.....#.#.##',
+    '#.#.#.#.#.###.###.#.#.#####.#.##',
+    '#.....#...........#...#.#.....##',
+    '#.###.#.#.#.#.#########.#.######',
+    '#.....#.#.#.............#.....##',
+    '#.###.#.#.#.#.#.###.#####.#.#.##',
+    '#.....#...#.......#.#...#.#.#.##',
+    '#.###.#####.#.#.#.###.#.#.###.##',
+    '#...#...........#.....#.......##',
+    '################################',
+  ],
+  [
+    '################################',
+    '#.#.........#...............#.##',
+    '#.#.#.#.###.#.###.#######.#.#.##',
+    '#...#.#.......#...#.......#.#.##',
+    '#.#.#.###.###.#.###.#####.#.#.##',
+    '#...#...........#.....#...#...##',
+    '#####.#####.#.#.#####.#.###.#.##',
+    '#...#.............#...#.#...#.##',
+    '###.#.#.#.#.#.#.#.#.###.#.###.##',
+    '#...#.#.......#.............#.##',
+    '#.#.#.#######.#.#.#.#.#.###.#.##',
+    '#...#.......#...#.#.#.....#...##',
+    '#.#.#####.#.###.#.#.###.#.#.#.##',
+    '#.#.#.......#...#.#...#.....#.##',
+    '###.#.###.#.###.#.#.#.#.#####.##',
+    '#...#...#.......#.#...#.....#.##',
+    '#.#.###.###.#.#.#.#.#.#.###.#.##',
+    '#.............#...#...........##',
+    '################################',
+  ],
+  [
+    '################################',
+    '#...#.......#...#.............##',
+    '#.#.#.#.#.#.#.#.###.###.###.#.##',
+    '#.#...#...#...#...#.......#...##',
+    '#.#.###.#########.#.#.#.#.#.#.##',
+    '#...#...#.............#.#...#.##',
+    '###.#.#.#.#####.#####.#.###.#.##',
+    '#.....#.....#.........#.......##',
+    '#.###.#.###.#.#.#.###########.##',
+    '#.........#.#.#...............##',
+    '#######.#.#.#.#.###.#.#.#.#.####',
+    '#.........#.#.#.....#.....#...##',
+    '#.#########.###.#.#####.#.###.##',
+    '#...#.....#.............#...#.##',
+    '#.#.#.###.#.###.#.#########.#.##',
+    '#.#.....#...........#.....#.#.##',
+    '#.#####.#########.#.#.###.###.##',
+    '#.....................#.......##',
+    '################################',
+  ],
+  [
+    '################################',
+    '#.#.#.................#.......##',
+    '#.#.#.#.#######.#.###.#.###.#.##',
+    '#.#.................#.......#.##',
+    '#.#.#.#####.#.#.###.#####.#.####',
+    '#.#.....#...#.#...............##',
+    '#.#.#.#.#.###.#####.#.#######.##',
+    '#.....#.....#.....#...........##',
+    '#.#.#.#.###.#####.#.#.#####.#.##',
+    '#.#...#.#.........#...#...#.#.##',
+    '#.###.###.###.#####.#.###.#.#.##',
+    '#.....#...#.#.............#.#.##',
+    '###.#.#.#.#.#.#######.#.#.#.#.##',
+    '#.#...#...#.........#.....#...##',
+    '#.#.#.#.#.#.#####.###.###.#.#.##',
+    '#.#.#.......#...#...........#.##',
+    '#.#.#.###.###.#.#.#.###.#.#.#.##',
+    '#.............#...............##',
+    '################################',
+  ],
+  [
+    '################################',
+    '#.#...........#...............##',
+    '#.#.###.#.###.###.#.#.#####.#.##',
+    '#.#...#...#.......#...#.......##',
+    '#.#.###.#.#.#.#####.###.###.#.##',
+    '#.#.........#...#...#.........##',
+    '#.###.#.#.#.#.###.#.#######.####',
+    '#.#...........#...#...........##',
+    '#.#.###.#.#.#.#.###.###.#.###.##',
+    '#...#.......#.#.....#.........##',
+    '#####.###.#.#.#########.#####.##',
+    '#.........#.#...........#.....##',
+    '#.#.#####.#.###.#.#.###.#.######',
+    '#.#.#.....#.......#...#.#.....##',
+    '#.#.#.#.#.###.###.###.#######.##',
+    '#.....#.#...................#.##',
+    '#.#.#.#.#.#####.#.#.#.#.#.###.##',
+    '#.....#.......................##',
+    '################################',
+  ],
 ]
 
-export const ROWS = MAZE_ROWS.length
-export const COLS = MAZE_ROWS[0].length
+export const ROWS = MAZE_LAYOUTS[0].length
+export const COLS = MAZE_LAYOUTS[0][0].length
 
 export type Cell = { row: number; col: number }
+export type MazeGrid = string[]
 
-export function isWall(row: number, col: number): boolean {
+// Tracks the most recently selected layout (module-level, persists across
+// component remounts within the same browser session) so consecutive
+// rounds avoid repeating the same layout back to back.
+let lastLayoutIndex: number | null = null
+
+export function pickLayout(): { grid: MazeGrid; index: number } {
+  const candidates = MAZE_LAYOUTS.map((_, i) => i).filter((i) => i !== lastLayoutIndex)
+  const pool = candidates.length > 0 ? candidates : MAZE_LAYOUTS.map((_, i) => i)
+  const index = pool[Math.floor(Math.random() * pool.length)]
+  lastLayoutIndex = index
+  return { grid: MAZE_LAYOUTS[index], index }
+}
+
+export function isWall(grid: MazeGrid, row: number, col: number): boolean {
   if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return true
-  return MAZE_ROWS[row][col] === '#'
+  return grid[row][col] === '#'
 }
 
 export function cellKey(c: Cell): string {
@@ -60,10 +165,10 @@ export const DIRS: Record<'up' | 'down' | 'left' | 'right', Cell> = {
 
 export type Direction = keyof typeof DIRS
 
-export function neighbors(c: Cell): Cell[] {
+export function neighbors(grid: MazeGrid, c: Cell): Cell[] {
   return (Object.keys(DIRS) as Direction[])
     .map((d) => ({ row: c.row + DIRS[d].row, col: c.col + DIRS[d].col }))
-    .filter((n) => !isWall(n.row, n.col))
+    .filter((n) => !isWall(grid, n.row, n.col))
 }
 
 // ============================================================
@@ -86,7 +191,7 @@ export function zoneForCol(col: number): typeof ZONES[number] {
 }
 
 // ============================================================
-// SPAWNS
+// SPAWNS — verified open in every layout above
 // ============================================================
 
 export const THIEF_SPAWN: Cell = { row: 9, col: 16 }
@@ -104,11 +209,11 @@ export interface CoinDef {
   power: boolean
 }
 
-function openCellsInZone(zone: typeof ZONES[number]): Cell[] {
+function openCellsInZone(grid: MazeGrid, zone: typeof ZONES[number]): Cell[] {
   const cells: Cell[] = []
   for (let row = 0; row < ROWS; row++) {
     for (let col = zone.colStart; col < zone.colEnd; col++) {
-      if (!isWall(row, col)) cells.push({ row, col })
+      if (!isWall(grid, row, col)) cells.push({ row, col })
     }
   }
   return cells
@@ -119,16 +224,17 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 // Picks one random open cell per zone for a regular coin, plus one
-// random open cell anywhere for the power-up coin. Avoids walls (by
-// construction, since only open cells are candidates), avoids the
-// thief/cop spawn cells, and avoids placing two coins on the same cell.
-export function generateCoins(): CoinDef[] {
+// random open cell anywhere for the power-up coin, for the given maze
+// layout. Avoids walls (by construction, since only open cells are
+// candidates), avoids the thief/cop spawn cells, and avoids placing two
+// coins on the same cell.
+export function generateCoins(grid: MazeGrid): CoinDef[] {
   const taken = new Set<string>([cellKey(THIEF_SPAWN), cellKey(COP_SPAWN)])
   const coins: CoinDef[] = []
 
   ZONES.forEach((zone, i) => {
-    const candidates = openCellsInZone(zone).filter((c) => !taken.has(cellKey(c)))
-    const cell = candidates.length > 0 ? pickRandom(candidates) : openCellsInZone(zone)[0]
+    const candidates = openCellsInZone(grid, zone).filter((c) => !taken.has(cellKey(c)))
+    const cell = candidates.length > 0 ? pickRandom(candidates) : openCellsInZone(grid, zone)[0]
     taken.add(cellKey(cell))
     coins.push({ id: `c${i + 1}`, row: cell.row, col: cell.col, zone: zone.id, power: false })
   })
@@ -136,7 +242,7 @@ export function generateCoins(): CoinDef[] {
   const allOpen: Cell[] = []
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      if (!isWall(row, col)) allOpen.push({ row, col })
+      if (!isWall(grid, row, col)) allOpen.push({ row, col })
     }
   }
   const powerCandidates = allOpen.filter((c) => !taken.has(cellKey(c)))

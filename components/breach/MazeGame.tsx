@@ -8,11 +8,13 @@ import {
   THIEF_SPAWN,
   ZONES,
   generateCoins,
+  pickLayout,
   sameCell,
   zoneForCol,
   type Cell,
   type CoinDef,
   type Direction,
+  type MazeGrid,
   type ZoneId,
 } from '@/lib/maze-data'
 import { bfsNextStep, thiefAiNextStep, tryMove } from '@/lib/maze-engine'
@@ -42,7 +44,8 @@ const TOAST_TTL_MS = 1400
 let toastSeq = 0
 
 export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSeen }: MazeGameProps) {
-  const [coins] = useState<CoinDef[]>(() => generateCoins())
+  const [grid] = useState<MazeGrid>(() => pickLayout().grid)
+  const [coins] = useState<CoinDef[]>(() => generateCoins(grid))
   const [thiefPos, setThiefPos] = useState<Cell>(THIEF_SPAWN)
   const [copPos, setCopPos] = useState<Cell>(COP_SPAWN)
   const [collected, setCollected] = useState<Set<string>>(new Set())
@@ -194,14 +197,14 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
   function stepBuffered(pos: Cell): { next: Cell; moved: boolean } {
     let next = pos
     if (desiredDirRef.current) {
-      const tryNext = tryMove(pos, desiredDirRef.current)
+      const tryNext = tryMove(grid, pos, desiredDirRef.current)
       if (!sameCell(tryNext, pos)) {
         next = tryNext
         lastDirRef.current = desiredDirRef.current
       }
     }
     if (sameCell(next, pos) && lastDirRef.current) {
-      const tryNext = tryMove(pos, lastDirRef.current)
+      const tryNext = tryMove(grid, pos, lastDirRef.current)
       if (!sameCell(tryNext, pos)) next = tryNext
     }
     return { next, moved: !sameCell(next, pos) }
@@ -281,7 +284,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
           const skipThisTick = aiThiefTickCountRef.current % AI_THIEF_SKIP_EVERY === 0
           if (!skipThisTick) {
             const remainingCoins = coins.filter((c) => !collectedRef.current.has(c.id))
-            const aiNext = thiefAiNextStep(thiefPosRef.current, copPosRef.current, remainingCoins)
+            const aiNext = thiefAiNextStep(grid, thiefPosRef.current, copPosRef.current, remainingCoins)
             if (!sameCell(aiNext, thiefPosRef.current)) {
               thiefPosRef.current = aiNext
               setThiefPos(aiNext)
@@ -313,7 +316,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         if (!halfToggleRef.current) return
       }
 
-      const next = bfsNextStep(copPosRef.current, thiefPosRef.current)
+      const next = bfsNextStep(grid, copPosRef.current, thiefPosRef.current)
       if (next) {
         copPosRef.current = next
         setCopPos(next)
@@ -467,6 +470,7 @@ export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSe
         style={{ width: '100%', maxWidth: boardWidth, touchAction: 'none', overflowX: 'auto' }}
       >
         <MazeBoard
+          grid={grid}
           cellSize={cellSize}
           coins={renderCoins}
           thiefPos={thiefPos}

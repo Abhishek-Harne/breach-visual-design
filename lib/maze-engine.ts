@@ -1,10 +1,10 @@
-import { type Cell, type Direction, DIRS, neighbors, manhattan, sameCell } from './maze-data'
+import { type Cell, type Direction, type MazeGrid, DIRS, neighbors, manhattan, sameCell } from './maze-data'
 
 // ============================================================
 // BFS PATHFINDING — used by the cop when chasing the thief
 // ============================================================
 
-export function bfsNextStep(start: Cell, target: Cell): Cell | null {
+export function bfsNextStep(grid: MazeGrid, start: Cell, target: Cell): Cell | null {
   if (sameCell(start, target)) return null
 
   const startKey = `${start.row},${start.col}`
@@ -16,7 +16,7 @@ export function bfsNextStep(start: Cell, target: Cell): Cell | null {
     const current = queue.shift()!
     if (sameCell(current, target)) break
 
-    for (const n of neighbors(current)) {
+    for (const n of neighbors(grid, current)) {
       const key = `${n.row},${n.col}`
       if (visited.has(key)) continue
       visited.add(key)
@@ -48,12 +48,13 @@ export function bfsNextStep(start: Cell, target: Cell): Cell | null {
 const HESITATION_CHANCE = 1 / 7
 
 export function thiefAiNextStep(
+  grid: MazeGrid,
   thiefPos: Cell,
   copPos: Cell,
   coins: Cell[],
   fleeRadius = 3
 ): Cell {
-  const options = neighbors(thiefPos)
+  const options = neighbors(grid, thiefPos)
   if (options.length === 0) return thiefPos
 
   // Hesitation: occasionally freeze for a tick or wander instead of the optimal move.
@@ -106,9 +107,9 @@ export function thiefAiNextStep(
 // PLAYER MOVEMENT — buffered direction, grid-snapped
 // ============================================================
 
-export function tryMove(pos: Cell, dir: Direction): Cell {
+export function tryMove(grid: MazeGrid, pos: Cell, dir: Direction): Cell {
   const delta = DIRS[dir]
   const next = { row: pos.row + delta.row, col: pos.col + delta.col }
-  const blocked = neighbors(pos).every((n) => !sameCell(n, next))
+  const blocked = neighbors(grid, pos).every((n) => !sameCell(n, next))
   return blocked ? pos : next
 }
