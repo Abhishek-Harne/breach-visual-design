@@ -1,6 +1,7 @@
 'use client'
 
 import type { GameMode, GameResult } from '@/components/breach/MazeGame'
+import { ThiefSVG, CopSVG } from '@/components/breach/Sprite'
 
 // ============================================================
 // Shared footer
@@ -113,15 +114,32 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           — THE CHASE IS REAL-TIME NOW
         </h2>
 
-        <div className="breach-card" style={{ padding: '20px', marginBottom: '32px' }}>
+        <div className="breach-card" style={{ padding: '20px', marginBottom: '20px' }}>
           <div className="breach-label" style={{ marginBottom: '10px' }}>
-            HOW_TO_PLAY:
+            WHY_THIS_EXISTS:
           </div>
           <p style={{ fontSize: '0.78rem', color: '#e2e8f0', lineHeight: 1.65 }}>
-            Run the breach yourself — grab coins through six real attack stages
-            while a cop hunts you down — or flip sides and play the cop chasing
-            an AI-controlled thief through the same maze. Grab the zero-day for
-            a brief edge.
+            Most data breaches don&apos;t happen because of some genius hacker
+            move. They happen because of one small, common mistake — a leaked
+            key, a permission that&apos;s too broad, a system nobody&apos;s
+            watching closely enough. This is a playable walk-through of how
+            that actually happens, and how it gets stopped.
+          </p>
+        </div>
+
+        <div className="breach-card" style={{ padding: '20px', marginBottom: '32px' }}>
+          <div className="breach-label" style={{ marginBottom: '10px' }}>
+            PICK_A_SIDE:
+          </div>
+          <p style={{ fontSize: '0.74rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.6, marginBottom: '8px' }}>
+            <span style={{ color: '#ff6b4a', fontWeight: 700 }}>Thief — </span>
+            see how far one small mistake can take someone, from a single
+            leaked key to a full breach.
+          </p>
+          <p style={{ fontSize: '0.74rem', color: 'rgba(226,232,240,0.85)', lineHeight: 1.6 }}>
+            <span style={{ color: '#00ffcc', fontWeight: 700 }}>Cop — </span>
+            see how close attacks usually come before they&apos;re caught, and
+            what it actually takes to stop one in time.
           </p>
         </div>
 
@@ -210,13 +228,16 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <div style={{ fontSize: '0.65rem', color: '#ff6b4a', letterSpacing: '0.1em', fontWeight: 700, marginBottom: '8px' }}>
-              PLAY AS THE THIEF
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+              <ThiefSVG size={48} />
+              <div style={{ fontSize: '0.65rem', color: '#ff6b4a', letterSpacing: '0.1em', fontWeight: 700 }}>
+                PLAY AS THE THIEF
+              </div>
             </div>
             <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              Collect every coin through all six breach stages while the cop
-              hunts you down with real pathfinding. Grab the zero-day for a
-              window to breathe.
+              See how the breach happens — work your way through all six
+              stages while the cop closes in. Grab the zero-day for a window
+              to breathe.
             </p>
           </button>
 
@@ -242,12 +263,16 @@ export function ModeChoiceScreen({ onSelectThief, onSelectCop }: ModeChoiceScree
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <div style={{ fontSize: '0.65rem', color: '#00ffcc', letterSpacing: '0.1em', fontWeight: 700, marginBottom: '8px' }}>
-              PLAY AS THE COP
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+              <CopSVG size={48} />
+              <div style={{ fontSize: '0.65rem', color: '#00ffcc', letterSpacing: '0.1em', fontWeight: 700 }}>
+                PLAY AS THE COP
+              </div>
             </div>
             <p style={{ fontSize: '0.72rem', color: 'rgba(226,232,240,0.7)', lineHeight: 1.55 }}>
-              Hunt down an AI-controlled thief before it grabs every coin in
-              the maze. Watch out — if it finds the zero-day, you'll slow down.
+              See how close it gets before it&apos;s caught — hunt down the
+              thief before they finish the job. Watch out — if they find the
+              zero-day, you&apos;ll slow down.
             </p>
           </button>
         </div>

@@ -11,6 +11,7 @@ export default function Page() {
   const [mode, setMode] = useState<GameMode>('thief')
   const [result, setResult] = useState<GameResult | null>(null)
   const [gameKey, setGameKey] = useState(0)
+  const [seenHowTo, setSeenHowTo] = useState<Record<GameMode, boolean>>({ thief: false, cop: false })
 
   const handleStart = useCallback(() => setScreen('modeChoice'), [])
 
@@ -38,6 +39,10 @@ export default function Page() {
 
   const handleGoHome = useCallback(() => setScreen('welcome'), [])
 
+  const handleHowToSeen = useCallback((m: GameMode) => {
+    setSeenHowTo((prev) => ({ ...prev, [m]: true }))
+  }, [])
+
   if (screen === 'welcome') {
     return <WelcomeScreen onStart={handleStart} />
   }
@@ -63,5 +68,14 @@ export default function Page() {
     )
   }
 
-  return <MazeGame key={gameKey} mode={mode} onFinish={handleFinish} onExit={handleGoHome} />
+  return (
+    <MazeGame
+      key={gameKey}
+      mode={mode}
+      onFinish={handleFinish}
+      onExit={handleGoHome}
+      showHowToInitially={!seenHowTo[mode]}
+      onHowToSeen={() => handleHowToSeen(mode)}
+    />
+  )
 }

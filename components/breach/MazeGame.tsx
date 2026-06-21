@@ -23,6 +23,8 @@ interface MazeGameProps {
   mode: GameMode
   onFinish: (result: GameResult) => void
   onExit: () => void
+  showHowToInitially: boolean
+  onHowToSeen: () => void
 }
 
 const PLAYER_TICK_MS = 170
@@ -36,7 +38,7 @@ const TOAST_TTL_MS = 1400
 
 let toastSeq = 0
 
-export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
+export function MazeGame({ mode, onFinish, onExit, showHowToInitially, onHowToSeen }: MazeGameProps) {
   const [thiefPos, setThiefPos] = useState<Cell>(THIEF_SPAWN)
   const [copPos, setCopPos] = useState<Cell>(COP_SPAWN)
   const [collected, setCollected] = useState<Set<string>>(new Set())
@@ -45,6 +47,7 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   const [shaking, setShaking] = useState(false)
   const [copDebuffed, setCopDebuffed] = useState(false)
   const [cellSize, setCellSize] = useState(26)
+  const [howToOpen, setHowToOpen] = useState(showHowToInitially)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const thiefPosRef = useRef(thiefPos)
@@ -58,11 +61,18 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   const halfToggleRef = useRef(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const aiThiefTickCountRef = useRef(0)
+  const pausedRef = useRef(howToOpen)
 
   thiefPosRef.current = thiefPos
   copPosRef.current = copPos
   collectedRef.current = collected
   phaseRef.current = phase
+  pausedRef.current = howToOpen
+
+  const handleHowToDismiss = useCallback(() => {
+    setHowToOpen(false)
+    onHowToSeen()
+  }, [onHowToSeen])
 
   // ----------------------------------------------------------------
   // Responsive cell size
@@ -195,7 +205,7 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   // ----------------------------------------------------------------
   useEffect(() => {
     const interval = setInterval(() => {
-      if (phaseRef.current !== 'playing') return
+      if (phaseRef.current !== 'playing' || pausedRef.current) return
 
       if (mode === 'thief') {
         const { next, moved } = stepBuffered(thiefPosRef.current)
@@ -242,7 +252,7 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
   useEffect(() => {
     if (mode !== 'thief') return
     const interval = setInterval(() => {
-      if (phaseRef.current !== 'playing') return
+      if (phaseRef.current !== 'playing' || pausedRef.current) return
 
       const now = Date.now()
       const frozen = now < powerFreezeUntilRef.current
@@ -327,22 +337,41 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
           {mode === 'thief' ? 'THIEF_MODE:' : 'COP_MODE:'}{' '}
           <span style={{ color: accent }}>{collected.size}/{COIN_DEFS.length} COINS</span>
         </div>
-        <button
-          onClick={onExit}
-          style={{
-            border: '1px solid rgba(255,255,255,0.18)',
-            borderRadius: '2px',
-            padding: '5px 10px',
-            background: '#0f0f18',
-            color: 'rgba(226,232,240,0.45)',
-            fontSize: '0.55rem',
-            letterSpacing: '0.1em',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          ← HOME
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            onClick={() => setHowToOpen(true)}
+            aria-label="How to play"
+            style={{
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: '2px',
+              padding: '5px 10px',
+              background: '#0f0f18',
+              color: 'rgba(226,232,240,0.45)',
+              fontSize: '0.55rem',
+              letterSpacing: '0.1em',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            ?
+          </button>
+          <button
+            onClick={onExit}
+            style={{
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: '2px',
+              padding: '5px 10px',
+              background: '#0f0f18',
+              color: 'rgba(226,232,240,0.45)',
+              fontSize: '0.55rem',
+              letterSpacing: '0.1em',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            ← HOME
+          </button>
+        </div>
       </div>
 
       {/* Toasts */}
@@ -450,6 +479,71 @@ export function MazeGame({ mode, onFinish, onExit }: MazeGameProps) {
           })}
         </div>
       </div>
+
+      {/* How-to-play popup */}
+      {howToOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 80,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(10,10,15,0.85)',
+            padding: '16px',
+          }}
+        >
+          <div className="breach-card" style={{ padding: '24px', maxWidth: '340px' }}>
+            <div
+              style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                marginBottom: '14px',
+                color: accent,
+              }}
+            >
+              HOW TO PLAY
+            </div>
+
+            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
+              Use arrow keys or WASD to move. On touch devices, swipe or use
+              the on-screen D-pad.
+            </p>
+
+            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '10px' }}>
+              {mode === 'thief'
+                ? 'Each star is a real step in a data breach — collect them to complete the hack.'
+                : 'Each star the thief grabs is a step toward finishing the breach — stop them before they collect them all.'}
+            </p>
+
+            <p style={{ fontSize: '0.72rem', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '18px' }}>
+              The diamond is a zero-day exploit — grab it for a brief
+              advantage that slows down your opponent.
+            </p>
+
+            <button
+              onClick={handleHowToDismiss}
+              style={{
+                border: `1px solid ${accent}`,
+                borderRadius: '2px',
+                padding: '12px 20px',
+                background: 'transparent',
+                color: accent,
+                fontSize: '0.65rem',
+                letterSpacing: '0.1em',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            >
+              GOT IT — START
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Caught / win overlay */}
       {phase !== 'playing' && (
